@@ -256,13 +256,14 @@ class Conversation:
     user_id: Optional[str]  # Phase 2에서 사용
     document_ids: List[str]
     title: str
-    created_at: datetime
-    updated_at: datetime
+    messages: List["Message"] = field(default_factory=list)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
 
     @staticmethod
     def create(
+        title: str,
         document_ids: List[str],
-        title: str = "New Conversation",
         user_id: Optional[str] = None
     ) -> "Conversation":
         """대화 생성 팩토리 메서드"""
@@ -272,6 +273,7 @@ class Conversation:
             user_id=user_id,
             document_ids=document_ids,
             title=title,
+            messages=[],
             created_at=now,
             updated_at=now
         )
@@ -283,9 +285,36 @@ class Conversation:
             user_id=self.user_id,
             document_ids=self.document_ids,
             title=new_title,
+            messages=self.messages,
             created_at=self.created_at,
             updated_at=datetime.now()
         )
+
+    def add_message(self, message: "Message") -> "Conversation":
+        """
+        메시지 추가
+
+        Args:
+            message: 추가할 Message 엔티티
+
+        Returns:
+            메시지가 추가된 새 Conversation 인스턴스
+        """
+        new_messages = self.messages + [message]
+        return Conversation(
+            id=self.id,
+            user_id=self.user_id,
+            document_ids=self.document_ids,
+            title=self.title,
+            messages=new_messages,
+            created_at=self.created_at,
+            updated_at=datetime.now()
+        )
+
+    @property
+    def message_count(self) -> int:
+        """메시지 개수"""
+        return len(self.messages)
 
 
 @dataclass(frozen=True)
@@ -305,20 +334,52 @@ class Message:
     metadata: dict = field(default_factory=dict)
 
     @staticmethod
+    def create(
+        conversation_id: str,
+        role: MessageRole,
+        content: str,
+        sources: Optional[List] = None,
+        token_count: int = 0,
+        metadata: Optional[dict] = None
+    ) -> "Message":
+        """
+        메시지 생성 팩토리 메서드
+
+        Args:
+            conversation_id: 대화 ID
+            role: 메시지 역할 (USER/ASSISTANT/SYSTEM)
+            content: 메시지 내용
+            sources: 출처 정보 (딕셔너리 리스트)
+            token_count: 토큰 수
+            metadata: 메타데이터
+
+        Returns:
+            Message 인스턴스
+        """
+        if not content:
+            raise ValueError("Message content cannot be empty")
+
+        return Message(
+            id=str(uuid4()),
+            conversation_id=conversation_id,
+            role=role,
+            content=content,
+            sources=sources or [],
+            timestamp=datetime.now(),
+            token_count=token_count,
+            metadata=metadata or {}
+        )
+
+    @staticmethod
     def create_user_message(
         conversation_id: str,
         content: str
     ) -> "Message":
         """사용자 메시지 생성"""
-        return Message(
-            id=str(uuid4()),
+        return Message.create(
             conversation_id=conversation_id,
             role=MessageRole.USER,
-            content=content,
-            sources=[],
-            timestamp=datetime.now(),
-            token_count=0,
-            metadata={}
+            content=content
         )
 
     @staticmethod
@@ -330,18 +391,13 @@ class Message:
         metadata: Optional[dict] = None
     ) -> "Message":
         """어시스턴트 메시지 생성"""
-        if not content:
-            raise ValueError("Assistant message content cannot be empty")
-
-        return Message(
-            id=str(uuid4()),
+        return Message.create(
             conversation_id=conversation_id,
             role=MessageRole.ASSISTANT,
             content=content,
             sources=sources,
-            timestamp=datetime.now(),
             token_count=token_count,
-            metadata=metadata or {}
+            metadata=metadata
         )
 
     def is_from_user(self) -> bool:

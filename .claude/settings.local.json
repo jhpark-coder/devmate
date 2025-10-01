@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\Users\\pjh13\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" -m venv venv)",
+      "Bash(test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
