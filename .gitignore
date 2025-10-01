@@ -1,0 +1,179 @@
+# DevMate .gitignore
+
+# ============================================
+# 🔒 민감 정보 (절대 커밋 금지!)
+# ============================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+credentials.json
+
+# OpenAI API Key
+openai_key.txt
+
+# ============================================
+# 🐍 Python
+# ============================================
+# 가상환경
+venv/
+env/
+ENV/
+.venv
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# ============================================
+# 📦 프로젝트 데이터 (용량 큰 파일)
+# ============================================
+# 업로드된 문서들
+data/documents/*.pdf
+data/documents/*.txt
+data/documents/*.docx
+# 예외: 샘플/테스트 문서는 허용
+!data/documents/sample.pdf
+!data/documents/test_*.pdf
+
+# 벡터 DB 인덱스 (FAISS)
+data/vector_store/*.faiss
+data/vector_store/*.pkl
+data/vector_store/*.index
+
+# SQLite 데이터베이스
+data/database/*.db
+data/database/*.sqlite
+data/database/*.sqlite3
+
+# 로그 파일
+logs/
+*.log
+
+# 임시 파일
+tmp/
+temp/
+*.tmp
+
+# ============================================
+# 🎨 IDE / 에디터
+# ============================================
+# VS Code
+.vscode/
+!.vscode/settings.json.example
+!.vscode/extensions.json
+
+# PyCharm
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# 🖥️ OS
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ============================================
+# 📝 문서
+# ============================================
+# 설계 문서들 (로컬에서만 참고)
+CLAUDE.md
+DESIGN.md
+ARCHITECTURE.md
+IMPLEMENTATION.md
+manual.md
+
+# 개인 메모
+NOTES.md
+TODO_PERSONAL.md
+SCRATCHPAD.md
+
+# 임시 실험 파일
+experiments/
+playground/
+sandbox/
+
+# ============================================
+# 🚀 배포 관련
+# ============================================
+# Streamlit 캐시
+.streamlit/
+
+# FastAPI
+.pytest_cache/
+
+# Docker (추후 사용 시)
+*.env.production
+docker-compose.override.yml
+
+# ============================================
+# 📊 성능 측정 결과
+# ============================================
+# 벤치마크 결과 (개인 환경 의존적)
+benchmarks/*.json
+performance_reports/
+
+# ============================================
+# ✅ Git에 포함할 것
+# ============================================
+# 환경 변수 예제는 포함
+# .env.example
+
+# 샘플 데이터는 포함
+# data/documents/sample.pdf
+
+# 테스트는 포함
+# tests/
