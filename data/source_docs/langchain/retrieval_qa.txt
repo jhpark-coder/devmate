@@ -1,0 +1,46 @@
+# LangChain Retrieval QA
+
+Retrieval QA chains allow you to do question answering over documents.
+
+## Basic Usage
+
+```python
+from langchain.chains import RetrievalQA
+from langchain_openai import OpenAI
+from langchain.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+
+# Create vector store (from previous example)
+embeddings = OpenAIEmbeddings()
+docsearch = FAISS.from_texts(texts, embeddings)
+
+# Create retrieval QA chain
+qa = RetrievalQA.from_chain_type(
+    llm=OpenAI(),
+    chain_type="stuff",
+    retriever=docsearch.as_retriever()
+)
+
+# Ask questions
+query = "What did the president say about Ketanji Brown Jackson?"
+result = qa.run(query)
+print(result)
+```
+
+## With Sources
+
+To also return the source documents:
+
+```python
+from langchain.chains import RetrievalQAWithSourcesChain
+
+qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
+    llm=OpenAI(),
+    chain_type="stuff",
+    retriever=docsearch.as_retriever()
+)
+
+result = qa_with_sources({"question": query})
+print(result["answer"])
+print(result["sources"])
+```

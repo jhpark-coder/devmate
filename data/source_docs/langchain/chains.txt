@@ -1,0 +1,45 @@
+# LangChain Chains
+
+Chains allow us to combine multiple components together to create a single, coherent application.
+
+## Simple Chain
+
+The most common type of chain is an LLMChain, which consists of a PromptTemplate and an LLM.
+
+```python
+from langchain.prompts import PromptTemplate
+from langchain_openai import OpenAI
+from langchain.chains import LLMChain
+
+llm = OpenAI(temperature=0.9)
+prompt = PromptTemplate(
+    input_variables=["product"],
+    template="What is a good name for a company that makes {product}?",
+)
+
+chain = LLMChain(llm=llm, prompt=prompt)
+result = chain.run("colorful socks")
+print(result)
+```
+
+## Sequential Chains
+
+Sometimes you want to pass the output of one chain as the input to another chain. Sequential chains allow you to do this.
+
+```python
+from langchain.chains import SimpleSequentialChain
+
+# Chain 1
+first_chain = LLMChain(llm=llm, prompt=first_prompt)
+
+# Chain 2
+second_chain = LLMChain(llm=llm, prompt=second_prompt)
+
+# Combine chains
+overall_chain = SimpleSequentialChain(
+    chains=[first_chain, second_chain],
+    verbose=True
+)
+
+result = overall_chain.run("colorful socks")
+```

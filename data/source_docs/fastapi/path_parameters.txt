@@ -1,0 +1,55 @@
+# Path Parameters
+
+You can declare path "parameters" or "variables" with the same syntax used by Python format strings:
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: int):
+    return {"item_id": item_id}
+```
+
+The value of the path parameter `item_id` will be passed to your function as the argument `item_id`.
+
+## Path parameters with types
+
+You can declare the type of a path parameter in the function, using standard Python type annotations:
+
+```python
+@app.get("/items/{item_id}")
+async def read_item(item_id: int):
+    return {"item_id": item_id}
+```
+
+In this case, `item_id` is declared to be an `int`. This will give you editor support inside of your function, with error checks, completion, etc.
+
+## Data validation
+
+The same Python type declaration provides data validation. If you pass something that is not an integer, like:
+
+http://127.0.0.1:8000/items/foo
+
+You will see a nice HTTP error.
+
+## Order matters
+
+When creating path operations, you can find situations where you have a fixed path. Like `/users/me`, let's say that it's to get data about the current user.
+
+And then you can also have a path `/users/{user_id}` to get data about a specific user by some user ID.
+
+Because path operations are evaluated in order, you need to make sure that the path for `/users/me` is declared before the one for `/users/{user_id}`:
+
+```python
+@app.get("/users/me")
+async def read_user_me():
+    return {"user_id": "the current user"}
+
+@app.get("/users/{user_id}")
+async def read_user(user_id: str):
+    return {"user_id": user_id}
+```
+
+Otherwise, the path for `/users/{user_id}` would match also for `/users/me`, "thinking" that it's receiving a parameter `user_id` with a value of "me".

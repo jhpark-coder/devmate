@@ -1,0 +1,56 @@
+# Python Dataclasses
+
+Dataclasses provide a decorator and functions for automatically adding special methods to classes.
+
+## Basic Usage
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: float
+    y: float
+
+p = Point(1.5, 2.5)
+print(p)  # Point(x=1.5, y=2.5)
+```
+
+## With Defaults
+
+```python
+@dataclass
+class Product:
+    name: str
+    price: float
+    quantity: int = 0
+
+product = Product("Widget", 9.99)
+```
+
+## Immutable Dataclasses
+
+```python
+@dataclass(frozen=True)
+class ImmutablePoint:
+    x: float
+    y: float
+
+p = ImmutablePoint(1.0, 2.0)
+# p.x = 3.0  # Raises FrozenInstanceError
+```
+
+## Post-init Processing
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class Rectangle:
+    width: float
+    height: float
+    area: float = field(init=False)
+
+    def __post_init__(self):
+        self.area = self.width * self.height
+```

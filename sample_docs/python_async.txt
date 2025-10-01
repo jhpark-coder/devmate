@@ -1,0 +1,215 @@
+# Python 비동기 프로그래밍 가이드
+
+## 소개
+
+Python의 asyncio는 비동기 I/O, 이벤트 루프, 코루틴을 사용하여 동시성 코드를 작성하는 라이브러리입니다.
+
+## 기본 개념
+
+### async/await 키워드
+
+Python 3.5부터 도입된 async/await 키워드를 사용하면 비동기 함수를 정의하고 호출할 수 있습니다.
+
+```python
+import asyncio
+
+async def hello():
+    print("Hello")
+    await asyncio.sleep(1)
+    print("World")
+
+# 실행
+asyncio.run(hello())
+```
+
+### 코루틴 (Coroutine)
+
+async def로 정의된 함수를 코루틴이라고 합니다. 코루틴은 await 키워드를 사용하여 다른 코루틴을 호출할 수 있습니다.
+
+```python
+async def fetch_data():
+    print("Fetching data...")
+    await asyncio.sleep(2)
+    return {"data": "value"}
+
+async def main():
+    result = await fetch_data()
+    print(result)
+
+asyncio.run(main())
+```
+
+## 주요 기능
+
+### 여러 작업 동시 실행
+
+asyncio.gather()를 사용하면 여러 코루틴을 동시에 실행할 수 있습니다.
+
+```python
+async def task1():
+    await asyncio.sleep(1)
+    return "Task 1 complete"
+
+async def task2():
+    await asyncio.sleep(2)
+    return "Task 2 complete"
+
+async def main():
+    results = await asyncio.gather(
+        task1(),
+        task2()
+    )
+    print(results)
+
+asyncio.run(main())
+```
+
+### 타임아웃 설정
+
+asyncio.wait_for()를 사용하여 작업에 타임아웃을 설정할 수 있습니다.
+
+```python
+async def slow_operation():
+    await asyncio.sleep(5)
+    return "Done"
+
+async def main():
+    try:
+        result = await asyncio.wait_for(slow_operation(), timeout=2.0)
+    except asyncio.TimeoutError:
+        print("Operation timed out!")
+
+asyncio.run(main())
+```
+
+### Task 생성
+
+asyncio.create_task()를 사용하여 백그라운드에서 코루틴을 실행할 수 있습니다.
+
+```python
+async def background_task():
+    while True:
+        print("Running in background")
+        await asyncio.sleep(1)
+
+async def main():
+    task = asyncio.create_task(background_task())
+    await asyncio.sleep(5)
+    task.cancel()
+
+asyncio.run(main())
+```
+
+## 실전 예제
+
+### HTTP 요청 비동기 처리
+
+aiohttp 라이브러리를 사용한 비동기 HTTP 요청 예제입니다.
+
+```python
+import aiohttp
+import asyncio
+
+async def fetch_url(session, url):
+    async with session.get(url) as response:
+        return await response.text()
+
+async def main():
+    urls = [
+        'https://api.example.com/data1',
+        'https://api.example.com/data2',
+        'https://api.example.com/data3'
+    ]
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_url(session, url) for url in urls]
+        results = await asyncio.gather(*tasks)
+        print(results)
+
+asyncio.run(main())
+```
+
+### 데이터베이스 비동기 쿼리
+
+SQLAlchemy의 async 지원을 사용한 예제입니다.
+
+```python
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+async def get_users():
+    engine = create_async_engine('postgresql+asyncpg://user:pass@localhost/db')
+    async_session = sessionmaker(engine, class_=AsyncSession)
+
+    async with async_session() as session:
+        result = await session.execute("SELECT * FROM users")
+        users = result.fetchall()
+        return users
+
+asyncio.run(get_users())
+```
+
+## 주의사항
+
+### 블로킹 연산 피하기
+
+비동기 코드 내에서 블로킹 연산(time.sleep, requests.get 등)을 사용하면 안 됩니다.
+
+❌ 잘못된 예:
+```python
+import time
+
+async def bad_example():
+    time.sleep(1)  # 블로킹! 전체 이벤트 루프를 막음
+    return "Done"
+```
+
+✅ 올바른 예:
+```python
+async def good_example():
+    await asyncio.sleep(1)  # 비블로킹! 다른 작업 실행 가능
+    return "Done"
+```
+
+### 예외 처리
+
+비동기 코드에서도 try/except를 사용하여 예외를 처리해야 합니다.
+
+```python
+async def safe_operation():
+    try:
+        result = await risky_operation()
+        return result
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return None
+```
+
+## 성능 고려사항
+
+### CPU 바운드 vs I/O 바운드
+
+- **I/O 바운드 작업**: asyncio가 적합 (네트워크, 파일, 데이터베이스)
+- **CPU 바운드 작업**: multiprocessing이 적합 (연산, 데이터 처리)
+
+### 동시 실행 수 제한
+
+너무 많은 작업을 동시에 실행하면 리소스가 고갈될 수 있습니다.
+
+```python
+async def limited_concurrency():
+    semaphore = asyncio.Semaphore(10)  # 최대 10개 동시 실행
+
+    async def worker(task_id):
+        async with semaphore:
+            await asyncio.sleep(1)
+            return f"Task {task_id} done"
+
+    tasks = [worker(i) for i in range(100)]
+    results = await asyncio.gather(*tasks)
+    return results
+```
+
+## 결론
+
+Python의 asyncio는 I/O 바운드 작업을 효율적으로 처리할 수 있는 강력한 도구입니다. async/await 문법을 올바르게 사용하고, 블로킹 연산을 피하며, 적절한 동시성 제어를 통해 고성능 비동기 애플리케이션을 개발할 수 있습니다.

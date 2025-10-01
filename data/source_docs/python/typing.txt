@@ -1,0 +1,51 @@
+# Python Type Hints
+
+Type hints allow you to indicate the expected data types of variables, function parameters, and return values.
+
+## Basic Types
+
+```python
+def greeting(name: str) -> str:
+    return f'Hello {name}'
+
+age: int = 25
+price: float = 19.99
+is_active: bool = True
+```
+
+## Collections
+
+```python
+from typing import List, Dict, Tuple, Set
+
+names: List[str] = ['Alice', 'Bob']
+user: Dict[str, int] = {'age': 25, 'id': 1}
+coordinates: Tuple[float, float] = (10.0, 20.0)
+unique_ids: Set[int] = {1, 2, 3}
+```
+
+## Optional and Union
+
+```python
+from typing import Optional, Union
+
+def find_user(user_id: int) -> Optional[str]:
+    # May return str or None
+    return None
+
+def process(value: Union[int, str]) -> None:
+    # Accepts int or str
+    pass
+```
+
+## Type Aliases
+
+```python
+from typing import List, Tuple
+
+Coordinate = Tuple[float, float]
+Path = List[Coordinate]
+
+def draw_path(path: Path) -> None:
+    pass
+```

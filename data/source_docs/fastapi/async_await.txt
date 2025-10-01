@@ -1,0 +1,67 @@
+# Async / Await
+
+You can declare path operation functions with `async def`:
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+async def read_root():
+    return {"Hello": "World"}
+```
+
+## When to use `async def` vs normal `def`
+
+If you are using third party libraries that tell you to call them with `await`, like:
+
+```python
+results = await some_library()
+```
+
+Then, declare your path operation functions with `async def`:
+
+```python
+@app.get('/')
+async def read_results():
+    results = await some_library()
+    return results
+```
+
+If you are using a third party library that communicates with something (a database, an API, the file system, etc.) and doesn't have support for using `await`, then declare your path operation functions with normal `def`:
+
+```python
+@app.get('/')
+def read_results():
+    results = some_library()
+    return results
+```
+
+## Technical Details
+
+Modern versions of Python have support for "asynchronous code" using something called "coroutines", with `async` and `await` syntax.
+
+In FastAPI you can use asynchronous code with `async` and `await` in path operation functions.
+
+If you don't know much about asynchronous code, async and await, or coroutines, check the Concurrency and async / await section.
+
+## Very Technical Details
+
+If you are using `async def` then you should `await` things inside:
+
+```python
+@app.get('/')
+async def read_results():
+    results = await some_library()  # Correct
+    return results
+```
+
+But if you use normal `def`, you should not use `await`:
+
+```python
+@app.get('/')
+def read_results():
+    results = some_library()  # Correct (no await)
+    return results
+```

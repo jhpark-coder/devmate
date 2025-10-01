@@ -1,0 +1,33 @@
+# LangChain Introduction
+
+LangChain is a framework for developing applications powered by language models.
+
+## Core Concepts
+
+LangChain provides standard, extendable interfaces and external integrations for:
+
+* **Models**: Various model types and model integrations
+* **Prompts**: Prompt management, optimization, and serialization
+* **Chains**: Sequences of calls (to an LLM or different utilities)
+* **Agents**: Let LLMs make decisions about which Actions to take, take that Action, see an Observation, and repeat until done
+* **Memory**: Persist application state between runs of a chain
+* **Document Loaders**: Load documents from many different sources
+* **Indexes**: Ways to structure documents so that LLMs can best interact with them
+
+## Installation
+
+```bash
+pip install langchain
+pip install langchain-openai
+```
+
+## Quick Start
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage
+
+llm = ChatOpenAI(temperature=0.9)
+response = llm.invoke([HumanMessage(content="Hello!")])
+print(response.content)
+```
