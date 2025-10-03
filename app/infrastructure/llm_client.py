@@ -1,7 +1,7 @@
 """
-LLM 클라이언트 (OpenAI Wrapper)
+LLM 클라이언트 (OpenAI Wrapper + Ollama)
 
-OpenAI API를 감싸는 추상화 레이어입니다.
+OpenAI API와 로컬 Ollama LLM을 감싸는 추상화 레이어입니다.
 
 ARCHITECTURE.md 원칙:
 - Infrastructure Layer: 외부 시스템 통신
@@ -10,6 +10,8 @@ ARCHITECTURE.md 원칙:
 
 from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
+import requests
+import json
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -193,8 +195,13 @@ class PromptBuilder:
 2. **출처 명시**: 답변에 사용한 문서 출처를 명확히 밝히세요.
 3. **모르면 인정**: Context에 없는 내용은 "제공된 문서에서 해당 정보를 찾을 수 없습니다"라고 답변하세요.
 4. **코드 강조**: 코드 예제는 마크다운 코드 블록(```)으로 감싸세요.
-5. **한국어 + 영어**: 기술 용어는 영어 원문을 병기하세요 (예: "비동기(Async)", "라우팅(Routing)").
+5. **한국어 답변**: 모든 답변은 한국어로 작성하세요. 기술 용어는 영어를 괄호로 병기하세요 (예: "의존성 주입(Dependency Injection)").
 6. **구조화된 답변**: 복잡한 내용은 단계별로 나누어 설명하세요.
+7. **문자 규칙**:
+   - 한국어는 반드시 한글(ㄱ-ㅎ, ㅏ-ㅣ, 가-힣)만 사용하세요
+   - 영어는 알파벳(A-Z, a-z)만 사용하세요
+   - 중국어 한자(罗, 箭, 頭 등)나 일본어, 베트남어는 절대 사용하지 마세요
+   - 예시: "화살표 함수" (올바름), "아罗우 함수" (잘못됨)
 
 **예시**:
 질문: FastAPI에서 비동기 함수를 어떻게 정의하나요?
@@ -307,3 +314,145 @@ Please answer the question based on the Context above."""
         messages.append({"role": "user", "content": question})
 
         return messages
+
+
+class OllamaClient(LLMClient):
+    """
+    Ollama 로컬 LLM 클라이언트 구현
+
+    로컬에서 실행되는 Llama 3.2 등의 모델 사용
+
+    특징:
+    - 완전 무료
+    - 데이터 외부 유출 없음
+    - 인터넷 불필요
+    """
+
+    def __init__(
+        self,
+        model: str = "llama3.2",
+        base_url: str = "http://localhost:11434",
+        temperature: float = 0.0
+    ):
+        """
+        Ollama 클라이언트 초기화
+
+        Args:
+            model: Ollama 모델 이름 (기본값: llama3.2)
+            base_url: Ollama 서버 URL (기본값: http://localhost:11434)
+            temperature: 생성 온도
+        """
+        self.model = model
+        self.base_url = base_url
+        self.temperature = temperature
+
+    async def generate(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> str:
+        """
+        대화 생성 (Ollama API 사용)
+
+        Args:
+            messages: 대화 메시지 리스트
+            temperature: 생성 온도 (None일 경우 기본값 사용)
+            max_tokens: 최대 토큰 수 (Ollama는 num_predict 사용)
+
+        Returns:
+            생성된 응답 텍스트
+
+        Raises:
+            ConnectionError: Ollama 서버 연결 실패
+            Exception: API 호출 실패
+        """
+        if not messages:
+            raise ValueError("Messages cannot be empty")
+
+        # 온도 설정
+        temp = temperature if temperature is not None else self.temperature
+
+        try:
+            # Ollama API 호출
+            response = requests.post(
+                f"{self.base_url}/api/chat",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {
+                        "temperature": temp,
+                        "num_predict": max_tokens if max_tokens else -1
+                    }
+                },
+                timeout=120  # 2분 타임아웃
+            )
+
+            response.raise_for_status()
+
+            # 응답 파싱
+            result = response.json()
+            return result["message"]["content"]
+
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(
+                "Ollama 서버에 연결할 수 없습니다. "
+                "Ollama가 실행 중인지 확인하세요.\n"
+                "설치: https://ollama.com/download\n"
+                "실행: ollama serve"
+            )
+        except requests.exceptions.Timeout:
+            raise Exception("Ollama 응답 시간 초과 (2분)")
+        except Exception as e:
+            raise Exception(f"Ollama 생성 실패: {e}")
+
+    def estimate_tokens(self, text: str) -> int:
+        """
+        대략적인 토큰 수 추정
+
+        Args:
+            text: 텍스트
+
+        Returns:
+            추정 토큰 수
+        """
+        # 간단한 휴리스틱
+        char_count = len(text)
+        return char_count // 3
+
+    def is_available(self) -> bool:
+        """
+        Ollama 서버 사용 가능 여부 확인
+
+        Returns:
+            사용 가능 여부
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/api/tags",
+                timeout=2
+            )
+            return response.status_code == 200
+        except:
+            return False
+
+    def list_models(self) -> List[str]:
+        """
+        사용 가능한 모델 목록 조회
+
+        Returns:
+            모델 이름 리스트
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/api/tags",
+                timeout=5
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            return [model["name"] for model in result.get("models", [])]
+
+        except:
+            return []

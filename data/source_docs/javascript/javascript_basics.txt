@@ -1,0 +1,60 @@
+# JavaScript Basics
+
+## Variables
+
+```javascript
+let name = "John";
+const PI = 3.14159;
+var oldStyle = "avoid using var";
+```
+
+## Arrow Functions
+
+```javascript
+const add = (a, b) => a + b;
+
+const square = x => x * x;
+
+const greet = () => {
+  console.log("Hello");
+};
+```
+
+## Array Methods
+
+```javascript
+const numbers = [1, 2, 3, 4, 5];
+
+// map
+const doubled = numbers.map(n => n * 2);  // [2, 4, 6, 8, 10]
+
+// filter
+const evens = numbers.filter(n => n % 2 === 0);  // [2, 4]
+
+// reduce
+const sum = numbers.reduce((acc, n) => acc + n, 0);  // 15
+
+// find
+const firstEven = numbers.find(n => n % 2 === 0);  // 2
+```
+
+## Promises and Async/Await
+
+```javascript
+// Promise
+fetch('https://api.example.com/data')
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error(error));
+
+// Async/Await
+async function fetchData() {
+  try {
+    const response = await fetch('https://api.example.com/data');
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+```

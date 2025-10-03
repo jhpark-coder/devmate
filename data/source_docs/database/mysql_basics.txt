@@ -1,0 +1,53 @@
+# MySQL Basics
+
+## Creating Database and Tables
+
+```sql
+CREATE DATABASE mydb;
+USE mydb;
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## CRUD Operations
+
+```sql
+-- Create
+INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+
+-- Read
+SELECT * FROM users;
+SELECT name, email FROM users WHERE id = 1;
+
+-- Update
+UPDATE users SET name = 'Jane Doe' WHERE id = 1;
+
+-- Delete
+DELETE FROM users WHERE id = 1;
+```
+
+## Joins
+
+```sql
+-- INNER JOIN
+SELECT orders.id, users.name, orders.total
+FROM orders
+INNER JOIN users ON orders.user_id = users.id;
+
+-- LEFT JOIN
+SELECT users.name, orders.total
+FROM users
+LEFT JOIN orders ON users.id = orders.user_id;
+```
+
+## Indexes
+
+```sql
+CREATE INDEX idx_email ON users(email);
+CREATE INDEX idx_name_email ON users(name, email);
+```

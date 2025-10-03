@@ -1,0 +1,57 @@
+# React Redux
+
+## Setup
+
+```javascript
+import { createStore } from 'redux';
+import { Provider } from 'react-redux';
+
+const store = createStore(reducer);
+
+function App() {
+  return (
+    <Provider store={store}>
+      <MyComponent />
+    </Provider>
+  );
+}
+```
+
+## useSelector and useDispatch
+
+```javascript
+import { useSelector, useDispatch } from 'react-redux';
+
+function Counter() {
+  const count = useSelector(state => state.count);
+  const dispatch = useDispatch();
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => dispatch({ type: 'INCREMENT' })}>
+        +
+      </button>
+    </div>
+  );
+}
+```
+
+## Redux Toolkit
+
+```javascript
+import { createSlice, configureStore } from '@reduxjs/toolkit';
+
+const counterSlice = createSlice({
+  name: 'counter',
+  initialState: { value: 0 },
+  reducers: {
+    increment: state => { state.value += 1 },
+    decrement: state => { state.value -= 1 }
+  }
+});
+
+const store = configureStore({
+  reducer: counterSlice.reducer
+});
+```

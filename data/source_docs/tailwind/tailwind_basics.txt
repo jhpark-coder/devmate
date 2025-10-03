@@ -1,0 +1,70 @@
+# Tailwind CSS Basics
+
+## Installation
+
+```bash
+npm install -D tailwindcss
+npx tailwindcss init
+```
+
+## Basic Usage
+
+```html
+<div class="bg-blue-500 text-white p-4 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold">Hello Tailwind</h1>
+    <p class="mt-2">This is a card component</p>
+</div>
+```
+
+## Layout
+
+```html
+<!-- Flexbox -->
+<div class="flex justify-between items-center">
+    <div>Left</div>
+    <div>Right</div>
+</div>
+
+<!-- Grid -->
+<div class="grid grid-cols-3 gap-4">
+    <div>1</div>
+    <div>2</div>
+    <div>3</div>
+</div>
+
+<!-- Container -->
+<div class="container mx-auto px-4">
+    Content
+</div>
+```
+
+## Responsive Design
+
+```html
+<!-- Mobile first approach -->
+<div class="text-sm md:text-base lg:text-lg">
+    Responsive text
+</div>
+
+<div class="block md:flex lg:grid lg:grid-cols-3">
+    Responsive layout
+</div>
+```
+
+## Common Patterns
+
+```html
+<!-- Button -->
+<button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+    Click me
+</button>
+
+<!-- Card -->
+<div class="max-w-sm rounded overflow-hidden shadow-lg">
+    <img class="w-full" src="/img/card.jpg" alt="Card">
+    <div class="px-6 py-4">
+        <div class="font-bold text-xl mb-2">Card Title</div>
+        <p class="text-gray-700 text-base">Card content</p>
+    </div>
+</div>
+```

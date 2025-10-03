@@ -1,0 +1,31 @@
+# FastAPI File Upload
+
+## Single File Upload
+
+```python
+from fastapi import File, UploadFile
+
+@app.post("/upload/")
+async def upload_file(file: UploadFile = File(...)):
+    contents = await file.read()
+    return {"filename": file.filename, "size": len(contents)}
+```
+
+## Multiple Files
+
+```python
+@app.post("/upload-multiple/")
+async def upload_multiple(files: list[UploadFile] = File(...)):
+    return {"filenames": [file.filename for file in files]}
+```
+
+## Save to Disk
+
+```python
+@app.post("/upload/")
+async def upload_file(file: UploadFile = File(...)):
+    with open(f"uploads/{file.filename}", "wb") as f:
+        content = await file.read()
+        f.write(content)
+    return {"filename": file.filename}
+```

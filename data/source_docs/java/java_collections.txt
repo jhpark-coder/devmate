@@ -1,0 +1,48 @@
+# Java Collections Framework
+
+## ArrayList
+
+```java
+import java.util.ArrayList;
+
+ArrayList<String> cars = new ArrayList<String>();
+cars.add("Volvo");
+cars.add("BMW");
+cars.add("Ford");
+cars.get(0);  // "Volvo"
+cars.set(0, "Opel");  // Change
+cars.remove(0);  // Remove
+cars.size();  // Get size
+```
+
+## HashMap
+
+```java
+import java.util.HashMap;
+
+HashMap<String, String> capitalCities = new HashMap<String, String>();
+capitalCities.put("England", "London");
+capitalCities.put("Germany", "Berlin");
+capitalCities.put("Norway", "Oslo");
+capitalCities.get("England");  // "London"
+```
+
+## HashSet
+
+```java
+import java.util.HashSet;
+
+HashSet<String> cars = new HashSet<String>();
+cars.add("Volvo");
+cars.add("BMW");
+cars.add("Ford");
+cars.contains("Mazda");  // false
+```
+
+## Iteration
+
+```java
+for (String i : cars) {
+  System.out.println(i);
+}
+```

@@ -1,0 +1,82 @@
+# React Performance Optimization
+
+## React.memo
+
+```javascript
+const MyComponent = React.memo(function MyComponent({ name }) {
+  return <div>{name}</div>;
+});
+
+// With custom comparison
+const MyComponent = React.memo(
+  ({ user }) => <div>{user.name}</div>,
+  (prevProps, nextProps) => prevProps.user.id === nextProps.user.id
+);
+```
+
+## useMemo
+
+```javascript
+function TodoList({ todos, filter }) {
+  const filteredTodos = useMemo(() => {
+    return todos.filter(todo => todo.category === filter);
+  }, [todos, filter]);
+
+  return <ul>{filteredTodos.map(todo => <li key={todo.id}>{todo.text}</li>)}</ul>;
+}
+```
+
+## useCallback
+
+```javascript
+function Parent() {
+  const [count, setCount] = useState(0);
+
+  const handleClick = useCallback(() => {
+    setCount(c => c + 1);
+  }, []);
+
+  return <Child onClick={handleClick} />;
+}
+
+const Child = React.memo(({ onClick }) => {
+  return <button onClick={onClick}>Click</button>;
+});
+```
+
+## Code Splitting
+
+```javascript
+import { lazy, Suspense } from 'react';
+
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
+
+function App() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HeavyComponent />
+    </Suspense>
+  );
+}
+```
+
+## Virtualization
+
+```javascript
+import { FixedSizeList } from 'react-window';
+
+function VirtualList({ items }) {
+  return (
+    <FixedSizeList
+      height={600}
+      itemCount={items.length}
+      itemSize={50}
+      width='100%'
+    >
+      {({ index, style }) => (
+        <div style={style}>{items[index]}</div>
+      )}
+    </FixedSizeList>
+  );
+}
+```

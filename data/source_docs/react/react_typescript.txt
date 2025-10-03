@@ -1,0 +1,48 @@
+# React with TypeScript
+
+## Component Props
+
+```typescript
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+const Button: React.FC<ButtonProps> = ({ label, onClick, disabled = false }) => {
+  return (
+    <button onClick={onClick} disabled={disabled}>
+      {label}
+    </button>
+  );
+};
+```
+
+## useState with Types
+
+```typescript
+interface User {
+  name: string;
+  age: number;
+}
+
+function UserComponent() {
+  const [user, setUser] = useState<User | null>(null);
+
+  return <div>{user?.name}</div>;
+}
+```
+
+## useRef with Types
+
+```typescript
+function TextInput() {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const focusInput = () => {
+    inputRef.current?.focus();
+  };
+
+  return <input ref={inputRef} />;
+}
+```

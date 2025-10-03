@@ -1,0 +1,52 @@
+# JavaScript ES6+ Features
+
+## Destructuring
+
+```javascript
+// Array destructuring
+const [first, second] = [1, 2, 3];
+
+// Object destructuring
+const { name, age } = { name: "John", age: 30 };
+
+// Function parameters
+function greet({ name, age }) {
+  console.log(`Hello ${name}, you are ${age}`);
+}
+```
+
+## Spread Operator
+
+```javascript
+const arr1 = [1, 2, 3];
+const arr2 = [...arr1, 4, 5];  // [1, 2, 3, 4, 5]
+
+const obj1 = { a: 1, b: 2 };
+const obj2 = { ...obj1, c: 3 };  // { a: 1, b: 2, c: 3 }
+```
+
+## Template Literals
+
+```javascript
+const name = "John";
+const age = 30;
+const message = `Hello, my name is ${name} and I am ${age} years old`;
+```
+
+## Classes
+
+```javascript
+class Person {
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+
+  greet() {
+    return `Hello, I'm ${this.name}`;
+  }
+}
+
+const john = new Person("John", 30);
+console.log(john.greet());
+```

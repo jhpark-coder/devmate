@@ -1,0 +1,250 @@
+# Spring Boot Kafka Integration (Kafka 통합)
+
+## Overview
+Apache Kafka is a distributed streaming platform used for building real-time data pipelines and streaming applications. Spring Kafka provides integration with Spring Boot applications.
+
+## Dependencies
+```xml
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+```
+
+## Kafka Configuration
+```java
+@Configuration
+@EnableKafka
+public class KafkaConfig {
+
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        config.put(ProducerConfig.ACKS_CONFIG, "all");
+        config.put(ProducerConfig.RETRIES_CONFIG, 3);
+        config.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
+        config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        return new DefaultKafkaProducerFactory<>(config);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "my-consumer-group");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        return new DefaultKafkaConsumerFactory<>(config);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        factory.setConcurrency(3);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+        factory.setCommonErrorHandler(new DefaultErrorHandler(
+                new FixedBackOff(1000L, 3)
+        ));
+        return factory;
+    }
+}
+```
+
+## Kafka Producer
+```java
+@Service
+@Slf4j
+public class KafkaProducerService {
+
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
+
+    public void sendMessage(String topic, Object message) {
+        kafkaTemplate.send(topic, message)
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        log.info("Message sent successfully: {} to topic: {}",
+                                message, topic);
+                    } else {
+                        log.error("Failed to send message: {} to topic: {}",
+                                message, topic, ex);
+                    }
+                });
+    }
+
+    public void sendMessageWithKey(String topic, String key, Object message) {
+        kafkaTemplate.send(topic, key, message);
+    }
+
+    public void sendMessageWithCallback(String topic, Object message) {
+        ListenableFuture<SendResult<String, Object>> future =
+                kafkaTemplate.send(topic, message);
+
+        future.addCallback(new ListenableFutureCallback<SendResult<String, Object>>() {
+            @Override
+            public void onSuccess(SendResult<String, Object> result) {
+                log.info("Sent message=[{}] with offset=[{}]",
+                        message,
+                        result.getRecordMetadata().offset());
+            }
+
+            @Override
+            public void onFailure(Throwable ex) {
+                log.error("Unable to send message=[{}] due to: {}",
+                        message, ex.getMessage());
+            }
+        });
+    }
+}
+```
+
+## Kafka Consumer
+```java
+@Service
+@Slf4j
+public class KafkaConsumerService {
+
+    @KafkaListener(topics = "user-events", groupId = "user-consumer-group")
+    public void consumeUserEvents(User user) {
+        log.info("Consumed user event: {}", user);
+        processUserEvent(user);
+    }
+
+    @KafkaListener(
+        topics = "order-events",
+        groupId = "order-consumer-group",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void consumeOrderEvents(
+            @Payload Order order,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION_ID) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.info("Received order: {} from topic: {}, partition: {}, offset: {}",
+                order, topic, partition, offset);
+
+        try {
+            processOrder(order);
+            acknowledgment.acknowledge();
+        } catch (Exception e) {
+            log.error("Error processing order: {}", order, e);
+            // Handle error or send to DLQ
+        }
+    }
+
+    @KafkaListener(topics = "notification-events", groupId = "notification-group")
+    public void consumeNotifications(ConsumerRecord<String, String> record) {
+        log.info("Key: {}, Value: {}, Partition: {}, Offset: {}",
+                record.key(), record.value(), record.partition(), record.offset());
+    }
+
+    private void processUserEvent(User user) {
+        // Business logic
+    }
+
+    private void processOrder(Order order) {
+        // Business logic
+    }
+}
+```
+
+## Batch Consumption
+```java
+@Service
+@Slf4j
+public class KafkaBatchConsumer {
+
+    @KafkaListener(
+        topics = "batch-topic",
+        groupId = "batch-consumer-group",
+        containerFactory = "batchKafkaListenerContainerFactory"
+    )
+    public void consumeBatch(List<User> users, Acknowledgment acknowledgment) {
+        log.info("Received batch of {} users", users.size());
+
+        users.forEach(user -> {
+            processUser(user);
+        });
+
+        acknowledgment.acknowledge();
+    }
+
+    private void processUser(User user) {
+        // Process individual user
+    }
+}
+```
+
+## Application Properties
+```yaml
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: my-consumer-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+```
+
+## Error Handling
+```java
+@Component
+@Slf4j
+public class KafkaErrorHandler implements ConsumerAwareListenerErrorHandler {
+
+    @Override
+    public Object handleError(Message<?> message, ListenerExecutionFailedException exception,
+                             Consumer<?, ?> consumer) {
+        log.error("Error in Kafka listener: {}", exception.getMessage());
+
+        // Send to Dead Letter Queue
+        sendToDLQ(message);
+
+        return null;
+    }
+
+    private void sendToDLQ(Message<?> message) {
+        // DLQ logic
+    }
+}
+```
+
+## Best Practices
+1. Use appropriate acknowledgment mode
+2. Implement idempotent producers
+3. Handle consumer errors gracefully
+4. Use Dead Letter Queue for failed messages
+5. Set appropriate timeout values
+6. Monitor consumer lag
+7. Use consumer groups for scalability
+8. Implement retry logic with exponential backoff
+9. Secure Kafka with SSL/SASL
+10. Use schema registry for complex messages

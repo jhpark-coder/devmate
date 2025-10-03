@@ -1,0 +1,38 @@
+# Node.js Events
+
+## EventEmitter
+
+```javascript
+const EventEmitter = require('events');
+
+class MyEmitter extends EventEmitter {}
+
+const myEmitter = new MyEmitter();
+
+myEmitter.on('event', (data) => {
+  console.log('Event occurred:', data);
+});
+
+myEmitter.emit('event', { foo: 'bar' });
+```
+
+## Error Events
+
+```javascript
+myEmitter.on('error', (err) => {
+  console.error('Error occurred:', err);
+});
+
+myEmitter.emit('error', new Error('Something went wrong'));
+```
+
+## Once Listener
+
+```javascript
+myEmitter.once('event', () => {
+  console.log('This will only run once');
+});
+
+myEmitter.emit('event');
+myEmitter.emit('event'); // Won't trigger
+```

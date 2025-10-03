@@ -1,0 +1,49 @@
+# TypeScript Advanced
+
+## Union and Intersection Types
+
+```typescript
+type Status = "success" | "error" | "loading";
+
+type Person = { name: string };
+type Employee = Person & { employeeId: number };
+
+const emp: Employee = {
+  name: "John",
+  employeeId: 123
+};
+```
+
+## Type Guards
+
+```typescript
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+if (isString(someValue)) {
+  console.log(someValue.toUpperCase());
+}
+```
+
+## Utility Types
+
+```typescript
+interface User {
+  name: string;
+  age: number;
+  email: string;
+}
+
+// Partial - makes all properties optional
+type PartialUser = Partial<User>;
+
+// Pick - selects specific properties
+type UserPreview = Pick<User, "name" | "email">;
+
+// Omit - excludes specific properties
+type UserWithoutEmail = Omit<User, "email">;
+
+// Readonly
+type ReadonlyUser = Readonly<User>;
+```

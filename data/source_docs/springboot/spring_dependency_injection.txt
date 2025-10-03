@@ -1,0 +1,87 @@
+# Spring Dependency Injection (의존성 주입)
+
+## What is Dependency Injection?
+
+의존성 주입(Dependency Injection, DI)은 객체가 필요로 하는 의존성(다른 객체)을 외부에서 주입받는 디자인 패턴입니다.
+
+## @Autowired
+
+가장 기본적인 의존성 주입 방법입니다.
+
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public User findById(Long id) {
+        return userRepository.findById(id).orElse(null);
+    }
+}
+```
+
+## Constructor Injection (권장)
+
+생성자를 통한 주입이 가장 권장되는 방법입니다.
+
+```java
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+
+    // @Autowired는 생성자가 하나일 때 생략 가능
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+```
+
+## Field Injection vs Constructor Injection
+
+```java
+// ❌ Field Injection (비권장)
+@Autowired
+private UserRepository userRepository;
+
+// ✅ Constructor Injection (권장)
+private final UserRepository userRepository;
+
+public UserService(UserRepository userRepository) {
+    this.userRepository = userRepository;
+}
+```
+
+**Constructor Injection의 장점:**
+- 불변성(Immutable) 보장
+- 테스트 용이
+- 순환 참조 방지
+
+## @Qualifier
+
+같은 타입의 빈이 여러 개일 때 특정 빈을 지정합니다.
+
+```java
+@Service
+public class PaymentService {
+
+    private final PaymentProcessor processor;
+
+    public PaymentService(@Qualifier("creditCard") PaymentProcessor processor) {
+        this.processor = processor;
+    }
+}
+```
+
+## @Primary
+
+기본으로 사용할 빈을 지정합니다.
+
+```java
+@Component
+@Primary
+public class CreditCardProcessor implements PaymentProcessor {
+    // ...
+}
+```

@@ -1,0 +1,78 @@
+# NestJS Basics
+
+## Setup
+
+```bash
+# Install NestJS CLI
+npm install -g @nestjs/cli
+
+# Create project
+nest new my-project
+
+# Run server
+npm run start:dev
+```
+
+## Controllers
+
+```typescript
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+
+@Controller('users')
+export class UsersController {
+  @Get()
+  findAll() {
+    return { message: 'Get all users' };
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return { message: `Get user ${id}` };
+  }
+
+  @Post()
+  create(@Body() createUserDto: any) {
+    return { message: 'User created', data: createUserDto };
+  }
+}
+```
+
+## Services
+
+```typescript
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class UsersService {
+  private users = [];
+
+  findAll() {
+    return this.users;
+  }
+
+  findOne(id: string) {
+    return this.users.find(user => user.id === id);
+  }
+
+  create(createUserDto: any) {
+    const user = { id: Date.now().toString(), ...createUserDto };
+    this.users.push(user);
+    return user;
+  }
+}
+```
+
+## Modules
+
+```typescript
+import { Module } from '@nestjs/common';
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
+
+@Module({
+  controllers: [UsersController],
+  providers: [UsersService],
+  exports: [UsersService]
+})
+export class UsersModule {}
+```

@@ -1,0 +1,52 @@
+# MongoDB Basics
+
+## What is MongoDB?
+
+MongoDB is a NoSQL document database that stores data in flexible, JSON-like documents.
+
+## Basic Operations (MongoDB Shell)
+
+```javascript
+// Create/Switch database
+use mydb
+
+// Insert document
+db.users.insertOne({
+  name: "John Doe",
+  age: 30,
+  email: "john@example.com"
+})
+
+// Insert multiple documents
+db.users.insertMany([
+  { name: "Alice", age: 25 },
+  { name: "Bob", age: 35 }
+])
+
+// Find documents
+db.users.find()
+db.users.findOne({ name: "John Doe" })
+db.users.find({ age: { $gte: 30 } })
+
+// Update document
+db.users.updateOne(
+  { name: "John Doe" },
+  { $set: { age: 31 } }
+)
+
+// Delete document
+db.users.deleteOne({ name: "John Doe" })
+```
+
+## Indexes
+
+```javascript
+// Create index
+db.users.createIndex({ email: 1 })
+
+// Create compound index
+db.users.createIndex({ name: 1, age: -1 })
+
+// View indexes
+db.users.getIndexes()
+```

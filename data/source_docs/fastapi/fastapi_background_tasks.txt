@@ -1,0 +1,56 @@
+# FastAPI Background Tasks
+
+## Basic Background Tasks
+
+```python
+from fastapi import BackgroundTasks
+
+def send_email(email: str, message: str):
+    # Simulate email sending
+    print(f"Sending email to {email}: {message}")
+
+@app.post("/send-notification/")
+async def send_notification(
+    email: str,
+    background_tasks: BackgroundTasks
+):
+    background_tasks.add_task(send_email, email, "Hello!")
+    return {"message": "Notification sent in background"}
+```
+
+## Multiple Background Tasks
+
+```python
+@app.post("/register/")
+async def register_user(
+    email: str,
+    background_tasks: BackgroundTasks
+):
+    # Add multiple tasks
+    background_tasks.add_task(send_welcome_email, email)
+    background_tasks.add_task(create_user_profile, email)
+    background_tasks.add_task(send_slack_notification, email)
+
+    return {"message": "User registered"}
+```
+
+## Celery Integration
+
+```python
+from celery import Celery
+
+celery = Celery(
+    'tasks',
+    broker='redis://localhost:6379/0'
+)
+
+@celery.task
+def process_video(video_id: str):
+    # Heavy processing
+    pass
+
+@app.post("/upload-video/")
+async def upload_video(video_id: str):
+    process_video.delay(video_id)
+    return {"message": "Processing started"}
+```

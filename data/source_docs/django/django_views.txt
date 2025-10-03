@@ -1,0 +1,86 @@
+# Django Views
+
+## Function-Based Views
+
+```python
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from .models import Post
+
+def post_list(request):
+    posts = Post.objects.all()
+    return render(request, 'posts/list.html', {'posts': posts})
+
+def post_detail(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    return render(request, 'posts/detail.html', {'post': post})
+
+def api_posts(request):
+    posts = Post.objects.values('id', 'title', 'content')
+    return JsonResponse(list(posts), safe=False)
+```
+
+## Class-Based Views
+
+```python
+from django.views.generic import ListView, DetailView, CreateView
+from django.urls import reverse_lazy
+from .models import Post
+
+class PostListView(ListView):
+    model = Post
+    template_name = 'posts/list.html'
+    context_object_name = 'posts'
+    paginate_by = 10
+
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'posts/detail.html'
+
+class PostCreateView(CreateView):
+    model = Post
+    fields = ['title', 'content']
+    success_url = reverse_lazy('post-list')
+```
+
+## URLs
+
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.PostListView.as_view(), name='post-list'),
+    path('<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
+    path('create/', views.PostCreateView.as_view(), name='post-create'),
+]
+```
+
+## Forms
+
+```python
+from django import forms
+from .models import Post
+
+class PostForm(forms.ModelForm):
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
+        widgets = {
+            'content': forms.Textarea(attrs={'rows': 5}),
+        }
+
+# In view
+def create_post(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            return redirect('post-list')
+    else:
+        form = PostForm()
+
+    return render(request, 'posts/create.html', {'form': form})
+```

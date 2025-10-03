@@ -1,0 +1,48 @@
+# React Testing
+
+## React Testing Library
+
+```javascript
+import { render, screen, fireEvent } from '@testing-library/react';
+
+test('renders button and handles click', () => {
+  render(<Button />);
+
+  const button = screen.getByRole('button');
+  fireEvent.click(button);
+
+  expect(screen.getByText('Clicked')).toBeInTheDocument();
+});
+```
+
+## Testing Hooks
+
+```javascript
+import { renderHook, act } from '@testing-library/react-hooks';
+
+test('useCounter', () => {
+  const { result } = renderHook(() => useCounter());
+
+  act(() => {
+    result.current.increment();
+  });
+
+  expect(result.current.count).toBe(1);
+});
+```
+
+## Mocking API Calls
+
+```javascript
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
+
+const server = setupServer(
+  rest.get('/api/user', (req, res, ctx) => {
+    return res(ctx.json({ name: 'John' }));
+  })
+);
+
+beforeAll(() => server.listen());
+afterAll(() => server.close());
+```

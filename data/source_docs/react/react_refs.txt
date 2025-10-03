@@ -1,0 +1,49 @@
+# React Refs
+
+## useRef Hook
+
+```javascript
+function TextInput() {
+  const inputRef = useRef(null);
+
+  const focusInput = () => {
+    inputRef.current.focus();
+  };
+
+  return (
+    <>
+      <input ref={inputRef} type="text" />
+      <button onClick={focusInput}>Focus</button>
+    </>
+  );
+}
+```
+
+## Forwarding Refs
+
+```javascript
+const FancyInput = React.forwardRef((props, ref) => (
+  <input ref={ref} className="fancy-input" {...props} />
+));
+
+function Parent() {
+  const inputRef = useRef();
+
+  return <FancyInput ref={inputRef} />;
+}
+```
+
+## Ref with DOM Measurements
+
+```javascript
+function MeasureElement() {
+  const divRef = useRef();
+
+  useEffect(() => {
+    const dimensions = divRef.current.getBoundingClientRect();
+    console.log(dimensions);
+  }, []);
+
+  return <div ref={divRef}>Measure me</div>;
+}
+```

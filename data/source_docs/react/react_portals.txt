@@ -1,0 +1,45 @@
+# React Portals
+
+## Basic Portal
+
+```javascript
+import ReactDOM from 'react-dom';
+
+function Modal({ children }) {
+  return ReactDOM.createPortal(
+    children,
+    document.getElementById('modal-root')
+  );
+}
+
+// Usage
+function App() {
+  return (
+    <div>
+      <Modal>
+        <div className="modal">
+          <h1>Modal Content</h1>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+```
+
+## Portal with Event Bubbling
+
+```javascript
+function Parent() {
+  const handleClick = () => {
+    console.log('Clicked inside portal');
+  };
+
+  return (
+    <div onClick={handleClick}>
+      <Modal>
+        <button>Click me</button>
+      </Modal>
+    </div>
+  );
+}
+```

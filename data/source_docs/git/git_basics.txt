@@ -1,0 +1,70 @@
+# Git Basics
+
+## Setup
+
+```bash
+# Configure user
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+
+# Initialize repository
+git init
+
+# Clone repository
+git clone https://github.com/user/repo.git
+```
+
+## Basic Workflow
+
+```bash
+# Check status
+git status
+
+# Stage changes
+git add .
+git add specific-file.txt
+
+# Commit
+git commit -m "Add new feature"
+
+# Push
+git push origin main
+
+# Pull
+git pull origin main
+```
+
+## Branching
+
+```bash
+# Create branch
+git branch feature-login
+
+# Switch branch
+git checkout feature-login
+# or
+git switch feature-login
+
+# Create and switch
+git checkout -b feature-signup
+
+# List branches
+git branch -a
+
+# Delete branch
+git branch -d feature-login
+```
+
+## Viewing History
+
+```bash
+# View commits
+git log
+git log --oneline
+git log --graph --all
+
+# View changes
+git diff
+git diff HEAD~1  # compare with previous commit
+git diff branch1..branch2
+```

@@ -1,0 +1,52 @@
+# Node.js Basics
+
+## What is Node.js?
+
+Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. It allows you to run JavaScript on the server.
+
+## Creating a Simple Server
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello World');
+});
+
+server.listen(3000, () => {
+  console.log('Server running at http://localhost:3000/');
+});
+```
+
+## File System Operations
+
+```javascript
+const fs = require('fs');
+
+// Read file
+fs.readFile('file.txt', 'utf8', (err, data) => {
+  if (err) throw err;
+  console.log(data);
+});
+
+// Write file
+fs.writeFile('output.txt', 'Hello Node.js', (err) => {
+  if (err) throw err;
+  console.log('File written');
+});
+```
+
+## NPM (Node Package Manager)
+
+```bash
+# Initialize project
+npm init -y
+
+# Install package
+npm install express
+
+# Install dev dependency
+npm install --save-dev nodemon
+```

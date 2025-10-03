@@ -1,0 +1,33 @@
+# FastAPI Caching
+
+## In-Memory Cache
+
+```python
+from functools import lru_cache
+
+@lru_cache()
+def get_settings():
+    return Settings()
+
+@app.get("/settings")
+def read_settings(settings: Settings = Depends(get_settings)):
+    return settings
+```
+
+## Redis Cache
+
+```python
+import aioredis
+
+redis = await aioredis.create_redis_pool('redis://localhost')
+
+@app.get("/data/{key}")
+async def get_data(key: str):
+    cached = await redis.get(key)
+    if cached:
+        return json.loads(cached)
+
+    data = fetch_from_db(key)
+    await redis.set(key, json.dumps(data), expire=300)
+    return data
+```

@@ -1,0 +1,26 @@
+# Django Advanced Signals
+
+## Transaction Signals
+
+```python
+from django.db.transaction import on_commit
+
+@receiver(post_save, sender=Order)
+def order_saved(sender, instance, **kwargs):
+    def send_email():
+        # Send email after transaction commits
+        pass
+
+    on_commit(send_email)
+```
+
+## Signal Disconnection
+
+```python
+# Temporarily disconnect
+from django.db.models.signals import pre_save
+
+pre_save.disconnect(my_handler, sender=MyModel)
+# Do something
+pre_save.connect(my_handler, sender=MyModel)
+```

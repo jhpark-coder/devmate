@@ -1,0 +1,45 @@
+# Django Signals
+
+## Pre/Post Save Signals
+
+```python
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+@receiver(pre_save, sender=Post)
+def slugify_title(sender, instance, **kwargs):
+    if not instance.slug:
+        instance.slug = slugify(instance.title)
+```
+
+## Custom Signals
+
+```python
+# signals.py
+from django.dispatch import Signal
+
+payment_completed = Signal()
+
+# Sending signal
+payment_completed.send(sender=Payment, order=order, amount=100)
+
+# Receiving signal
+@receiver(payment_completed)
+def send_invoice(sender, order, amount, **kwargs):
+    send_email(order.user.email, f'Invoice for ${amount}')
+```
+
+## Pre/Post Delete
+
+```python
+@receiver(pre_delete, sender=User)
+def delete_related_data(sender, instance, **kwargs):
+    # Clean up before deletion
+    instance.posts.all().delete()
+    instance.profile.delete()
+```

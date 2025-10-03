@@ -1,0 +1,71 @@
+# AWS VPC (Virtual Private Cloud)
+
+## What is VPC?
+
+Isolated virtual network for AWS resources.
+
+## Create VPC
+
+```bash
+# Create VPC
+aws ec2 create-vpc --cidr-block 10.0.0.0/16
+
+# Create subnets
+aws ec2 create-subnet   --vpc-id vpc-12345   --cidr-block 10.0.1.0/24   --availability-zone us-east-1a
+
+aws ec2 create-subnet   --vpc-id vpc-12345   --cidr-block 10.0.2.0/24   --availability-zone us-east-1b
+```
+
+## Internet Gateway
+
+```bash
+# Create and attach internet gateway
+aws ec2 create-internet-gateway
+aws ec2 attach-internet-gateway   --vpc-id vpc-12345   --internet-gateway-id igw-12345
+
+# Create route table
+aws ec2 create-route-table --vpc-id vpc-12345
+aws ec2 create-route   --route-table-id rtb-12345   --destination-cidr-block 0.0.0.0/0   --gateway-id igw-12345
+```
+
+## Security Groups
+
+```bash
+# Create security group
+aws ec2 create-security-group   --group-name web-sg   --description "Web server security group"   --vpc-id vpc-12345
+
+# Allow HTTP traffic
+aws ec2 authorize-security-group-ingress   --group-id sg-12345   --protocol tcp   --port 80   --cidr 0.0.0.0/0
+
+# Allow HTTPS traffic
+aws ec2 authorize-security-group-ingress   --group-id sg-12345   --protocol tcp   --port 443   --cidr 0.0.0.0/0
+
+# Allow SSH from specific IP
+aws ec2 authorize-security-group-ingress   --group-id sg-12345   --protocol tcp   --port 22   --cidr 1.2.3.4/32
+```
+
+## NAT Gateway (Private subnet internet access)
+
+```bash
+# Allocate Elastic IP
+aws ec2 allocate-address --domain vpc
+
+# Create NAT Gateway
+aws ec2 create-nat-gateway   --subnet-id subnet-12345   --allocation-id eipalloc-12345
+
+# Add route for private subnet
+aws ec2 create-route   --route-table-id rtb-private   --destination-cidr-block 0.0.0.0/0   --nat-gateway-id nat-12345
+```
+
+## VPC Peering
+
+```bash
+# Create VPC peering connection
+aws ec2 create-vpc-peering-connection   --vpc-id vpc-12345   --peer-vpc-id vpc-67890
+
+# Accept peering connection
+aws ec2 accept-vpc-peering-connection   --vpc-peering-connection-id pcx-12345
+
+# Add routes
+aws ec2 create-route   --route-table-id rtb-12345   --destination-cidr-block 10.1.0.0/16   --vpc-peering-connection-id pcx-12345
+```

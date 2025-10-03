@@ -1,0 +1,72 @@
+# Django Basics
+
+## Setup
+
+```bash
+# Install Django
+pip install django
+
+# Create project
+django-admin startproject myproject
+
+# Create app
+python manage.py startapp myapp
+
+# Run server
+python manage.py runserver
+```
+
+## Models
+
+```python
+from django.db import models
+
+class User(models.Model):
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.username
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+```
+
+## Migrations
+
+```bash
+# Create migrations
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# View SQL
+python manage.py sqlmigrate myapp 0001
+```
+
+## Admin
+
+```python
+from django.contrib import admin
+from .models import User, Post
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['username', 'email', 'created_at']
+    search_fields = ['username', 'email']
+
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ['title', 'author', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['title', 'content']
+```

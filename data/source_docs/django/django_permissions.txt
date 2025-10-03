@@ -1,0 +1,39 @@
+# Django Permissions
+
+## Model Permissions
+
+```python
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+
+    class Meta:
+        permissions = [
+            ("can_publish", "Can publish article"),
+        ]
+```
+
+## Check Permissions
+
+```python
+# In views
+if request.user.has_perm('myapp.can_publish'):
+    # Allow action
+    pass
+
+# In templates
+{% if perms.myapp.can_publish %}
+    <button>Publish</button>
+{% endif %}
+```
+
+## Custom Permission Classes (DRF)
+
+```python
+from rest_framework import permissions
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.owner == request.user
+```

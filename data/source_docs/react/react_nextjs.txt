@@ -1,0 +1,45 @@
+# Next.js with React
+
+## Pages and Routing
+
+```javascript
+// pages/index.js
+export default function Home() {
+  return <h1>Home Page</h1>;
+}
+
+// pages/about.js
+export default function About() {
+  return <h1>About Page</h1>;
+}
+
+// Automatic routing: / and /about
+```
+
+## getServerSideProps
+
+```javascript
+export async function getServerSideProps(context) {
+  const res = await fetch('https://api.example.com/data');
+  const data = await res.json();
+
+  return {
+    props: { data }
+  };
+}
+
+export default function Page({ data }) {
+  return <div>{data}</div>;
+}
+```
+
+## API Routes
+
+```javascript
+// pages/api/hello.js
+export default function handler(req, res) {
+  res.status(200).json({ message: 'Hello' });
+}
+
+// Access at /api/hello
+```

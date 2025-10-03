@@ -1,0 +1,88 @@
+# Node.js File Upload
+
+## Multer
+
+```javascript
+const multer = require('multer');
+const path = require('path');
+
+// Storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// File filter
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (extname && mimetype) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only images allowed'));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
+
+// Single file
+app.post('/upload', upload.single('image'), (req, res) => {
+  res.json({
+    message: 'File uploaded',
+    filename: req.file.filename
+  });
+});
+
+// Multiple files
+app.post('/upload-multiple', upload.array('images', 10), (req, res) => {
+  res.json({
+    message: 'Files uploaded',
+    files: req.files.map(f => f.filename)
+  });
+});
+```
+
+## S3 Upload
+
+```javascript
+const AWS = require('aws-sdk');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_SECRET_KEY
+});
+
+const upload = multer({
+  storage: multerS3({
+    s3,
+    bucket: 'my-bucket',
+    acl: 'public-read',
+    metadata: (req, file, cb) => {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: (req, file, cb) => {
+      cb(null, Date.now().toString() + '-' + file.originalname);
+    }
+  })
+});
+
+app.post('/upload-s3', upload.single('file'), (req, res) => {
+  res.json({
+    message: 'File uploaded to S3',
+    location: req.file.location
+  });
+});
+```

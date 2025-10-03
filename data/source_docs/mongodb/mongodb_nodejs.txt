@@ -1,0 +1,80 @@
+# MongoDB with Node.js
+
+## Installing MongoDB Driver
+
+```bash
+npm install mongodb
+```
+
+## Connecting to MongoDB
+
+```javascript
+const { MongoClient } = require('mongodb');
+
+const url = 'mongodb://localhost:27017';
+const client = new MongoClient(url);
+
+async function connect() {
+  await client.connect();
+  console.log('Connected to MongoDB');
+
+  const db = client.db('mydb');
+  return db;
+}
+```
+
+## CRUD Operations with Node.js
+
+```javascript
+const db = await connect();
+const users = db.collection('users');
+
+// Create
+await users.insertOne({
+  name: 'John',
+  email: 'john@example.com'
+});
+
+// Read
+const user = await users.findOne({ name: 'John' });
+const allUsers = await users.find().toArray();
+
+// Update
+await users.updateOne(
+  { name: 'John' },
+  { $set: { email: 'newemail@example.com' } }
+);
+
+// Delete
+await users.deleteOne({ name: 'John' });
+```
+
+## Using Mongoose (ODM)
+
+```javascript
+const mongoose = require('mongoose');
+
+// Connect
+await mongoose.connect('mongodb://localhost:27017/mydb');
+
+// Define schema
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, required: true },
+  age: Number
+});
+
+// Create model
+const User = mongoose.model('User', userSchema);
+
+// Create document
+const user = new User({
+  name: 'John',
+  email: 'john@example.com',
+  age: 30
+});
+await user.save();
+
+// Find documents
+const users = await User.find({ age: { $gte: 25 } });
+```

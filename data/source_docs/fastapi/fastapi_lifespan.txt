@@ -1,0 +1,33 @@
+# FastAPI Lifespan Events
+
+## Startup and Shutdown
+
+```python
+@app.on_event("startup")
+async def startup_event():
+    # Connect to database
+    await database.connect()
+    print("Application started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Disconnect from database
+    await database.disconnect()
+    print("Application shutdown")
+```
+
+## With Context Manager
+
+```python
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await database.connect()
+    yield
+    # Shutdown
+    await database.disconnect()
+
+app = FastAPI(lifespan=lifespan)
+```

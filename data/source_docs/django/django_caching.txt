@@ -1,0 +1,37 @@
+# Django Caching
+
+## Cache Configuration
+
+```python
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+    }
+}
+```
+
+## Per-View Caching
+
+```python
+from django.views.decorators.cache import cache_page
+
+@cache_page(60 * 15)  # Cache for 15 minutes
+def my_view(request):
+    return HttpResponse("Hello")
+```
+
+## Low-Level Cache API
+
+```python
+from django.core.cache import cache
+
+# Set cache
+cache.set('key', 'value', timeout=300)
+
+# Get cache
+value = cache.get('key')
+
+# Delete cache
+cache.delete('key')
+```

@@ -1,0 +1,63 @@
+# Express.js Framework
+
+## Installing Express
+
+```bash
+npm install express
+```
+
+## Basic Express App
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Hello World!');
+});
+
+app.listen(3000, () => {
+  console.log('Server listening on port 3000');
+});
+```
+
+## Routes
+
+```javascript
+// GET request
+app.get('/users', (req, res) => {
+  res.json({ users: [] });
+});
+
+// POST request
+app.post('/users', (req, res) => {
+  const newUser = req.body;
+  res.status(201).json(newUser);
+});
+
+// Route parameters
+app.get('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  res.json({ id: userId });
+});
+```
+
+## Middleware
+
+```javascript
+// Body parser middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Custom middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+```

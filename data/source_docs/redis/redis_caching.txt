@@ -1,0 +1,75 @@
+# Redis Caching Patterns
+
+## Cache-Aside Pattern
+
+```python
+import redis
+import json
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+
+def get_user(user_id):
+    # Try cache first
+    cache_key = f"user:{user_id}"
+    cached = r.get(cache_key)
+
+    if cached:
+        return json.loads(cached)
+
+    # Cache miss - fetch from DB
+    user = db.query(f"SELECT * FROM users WHERE id = {user_id}")
+
+    # Store in cache
+    r.setex(cache_key, 3600, json.dumps(user))
+
+    return user
+```
+
+## Session Management
+
+```python
+def create_session(user_id, session_data):
+    session_id = generate_session_id()
+    r.setex(
+        f"session:{session_id}",
+        1800,  # 30 minutes
+        json.dumps(session_data)
+    )
+    return session_id
+
+def get_session(session_id):
+    data = r.get(f"session:{session_id}")
+    return json.loads(data) if data else None
+```
+
+## Rate Limiting
+
+```python
+def rate_limit(user_id, limit=100, window=60):
+    key = f"rate_limit:{user_id}"
+    current = r.incr(key)
+
+    if current == 1:
+        r.expire(key, window)
+
+    return current <= limit
+```
+
+## Pub/Sub
+
+```python
+# Publisher
+r.publish('notifications', json.dumps({
+    'type': 'new_message',
+    'user_id': 123
+}))
+
+# Subscriber
+pubsub = r.pubsub()
+pubsub.subscribe('notifications')
+
+for message in pubsub.listen():
+    if message['type'] == 'message':
+        data = json.loads(message['data'])
+        handle_notification(data)
+```

@@ -1,0 +1,73 @@
+# CSS Basics
+
+## Selectors
+
+```css
+/* Element selector */
+p {
+    color: blue;
+}
+
+/* Class selector */
+.container {
+    width: 80%;
+    margin: 0 auto;
+}
+
+/* ID selector */
+#header {
+    background-color: navy;
+}
+
+/* Descendant selector */
+.container p {
+    font-size: 14px;
+}
+```
+
+## Flexbox
+
+```css
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item {
+    flex: 1;
+}
+```
+
+## Grid
+
+```css
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+```
+
+## Responsive Design
+
+```css
+/* Mobile first */
+.container {
+    width: 100%;
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+    .container {
+        width: 750px;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .container {
+        width: 960px;
+    }
+}
+```

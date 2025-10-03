@@ -1,0 +1,63 @@
+# Java Object-Oriented Programming
+
+## Classes and Objects
+
+```java
+public class Car {
+  String brand;
+  String model;
+  int year;
+
+  public Car(String brand, String model, int year) {
+    this.brand = brand;
+    this.model = model;
+    this.year = year;
+  }
+
+  public void displayInfo() {
+    System.out.println(brand + " " + model + " (" + year + ")");
+  }
+}
+
+// Usage
+Car myCar = new Car("Toyota", "Camry", 2023);
+myCar.displayInfo();
+```
+
+## Inheritance
+
+```java
+class Vehicle {
+  protected String brand = "Ford";
+  public void honk() {
+    System.out.println("Tuut, tuut!");
+  }
+}
+
+class Car extends Vehicle {
+  private String modelName = "Mustang";
+  public static void main(String[] args) {
+    Car myFastCar = new Car();
+    myFastCar.honk();
+    System.out.println(myFastCar.brand + " " + myFastCar.modelName);
+  }
+}
+```
+
+## Interfaces
+
+```java
+interface Animal {
+  public void animalSound();
+  public void sleep();
+}
+
+class Pig implements Animal {
+  public void animalSound() {
+    System.out.println("The pig says: wee wee");
+  }
+  public void sleep() {
+    System.out.println("Zzz");
+  }
+}
+```

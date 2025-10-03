@@ -1,0 +1,93 @@
+# Django REST Framework
+
+## Installation
+
+```bash
+pip install djangorestframework
+```
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+]
+```
+
+## Serializers
+
+```python
+from rest_framework import serializers
+from .models import User
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value
+```
+
+## ViewSets
+
+```python
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    # Custom action
+    @action(detail=True, methods=['post'])
+    def set_password(self, request, pk=None):
+        user = self.get_object()
+        user.set_password(request.data['password'])
+        user.save()
+        return Response({'status': 'password set'})
+```
+
+## Routers
+
+```python
+# urls.py
+from rest_framework.routers import DefaultRouter
+from .views import UserViewSet
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet)
+
+urlpatterns = [
+    path('api/', include(router.urls)),
+]
+```
+
+## Authentication
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+```
+
+## Permissions
+
+```python
+from rest_framework import permissions
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.owner == request.user
+```

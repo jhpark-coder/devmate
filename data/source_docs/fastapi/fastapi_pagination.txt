@@ -1,0 +1,26 @@
+# FastAPI Pagination
+
+## Basic Pagination
+
+```python
+@app.get("/users/")
+def list_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    users = db.query(User).offset(skip).limit(limit).all()
+    return users
+```
+
+## With Total Count
+
+```python
+from pydantic import BaseModel
+
+class PaginatedResponse(BaseModel):
+    total: int
+    items: list
+
+@app.get("/users/", response_model=PaginatedResponse)
+def list_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    total = db.query(User).count()
+    users = db.query(User).offset(skip).limit(limit).all()
+    return {"total": total, "items": users}
+```

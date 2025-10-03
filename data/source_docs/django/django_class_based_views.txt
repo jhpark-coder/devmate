@@ -1,0 +1,40 @@
+# Django Class-Based Views
+
+## ListView
+
+```python
+from django.views.generic import ListView
+
+class UserListView(ListView):
+    model = User
+    template_name = 'users/list.html'
+    context_object_name = 'users'
+    paginate_by = 10
+
+    def get_queryset(self):
+        return User.objects.filter(is_active=True)
+```
+
+## DetailView
+
+```python
+from django.views.generic import DetailView
+
+class UserDetailView(DetailView):
+    model = User
+    template_name = 'users/detail.html'
+    context_object_name = 'user'
+```
+
+## CreateView
+
+```python
+from django.views.generic.edit import CreateView
+from django.urls import reverse_lazy
+
+class UserCreateView(CreateView):
+    model = User
+    fields = ['username', 'email']
+    template_name = 'users/create.html'
+    success_url = reverse_lazy('user-list')
+```

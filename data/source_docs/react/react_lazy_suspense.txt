@@ -1,0 +1,35 @@
+# React Code Splitting
+
+## React.lazy
+
+```javascript
+const LazyComponent = React.lazy(() => import('./LazyComponent'));
+
+function App() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LazyComponent />
+    </Suspense>
+  );
+}
+```
+
+## Multiple Lazy Components
+
+```javascript
+const Home = React.lazy(() => import('./Home'));
+const About = React.lazy(() => import('./About'));
+const Contact = React.lazy(() => import('./Contact'));
+
+function App() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    </Suspense>
+  );
+}
+```

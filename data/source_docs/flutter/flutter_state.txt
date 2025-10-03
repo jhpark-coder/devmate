@@ -1,0 +1,79 @@
+# Flutter State Management
+
+## StatefulWidget
+
+```dart
+class Counter extends StatefulWidget {
+  @override
+  _CounterState createState() => _CounterState();
+}
+
+class _CounterState extends State<Counter> {
+  int _count = 0;
+
+  void _increment() {
+    setState(() {
+      _count++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Count: $_count'),
+        ElevatedButton(
+          onPressed: _increment,
+          child: Text('Increment'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+## Navigation
+
+```dart
+// Navigate to new screen
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => SecondScreen()),
+);
+
+// Go back
+Navigator.pop(context);
+
+// Named routes
+MaterialApp(
+  routes: {
+    '/': (context) => HomeScreen(),
+    '/second': (context) => SecondScreen(),
+  },
+);
+
+// Navigate using named route
+Navigator.pushNamed(context, '/second');
+```
+
+## Lists
+
+```dart
+// ListView
+ListView(
+  children: [
+    ListTile(title: Text('Item 1')),
+    ListTile(title: Text('Item 2')),
+  ],
+)
+
+// ListView.builder for dynamic lists
+ListView.builder(
+  itemCount: items.length,
+  itemBuilder: (context, index) {
+    return ListTile(
+      title: Text(items[index]),
+    );
+  },
+)
+```

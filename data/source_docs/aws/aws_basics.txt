@@ -1,0 +1,57 @@
+# AWS Basics
+
+## EC2 (Elastic Compute Cloud)
+
+Virtual servers in the cloud.
+
+```bash
+# AWS CLI - Launch instance
+aws ec2 run-instances   --image-id ami-0c55b159cbfafe1f0   --instance-type t2.micro   --key-name MyKeyPair   --security-group-ids sg-12345678
+
+# List instances
+aws ec2 describe-instances
+
+# Stop instance
+aws ec2 stop-instances --instance-ids i-1234567890abcdef0
+```
+
+## S3 (Simple Storage Service)
+
+Object storage service.
+
+```bash
+# Create bucket
+aws s3 mb s3://my-bucket-name
+
+# Upload file
+aws s3 cp myfile.txt s3://my-bucket-name/
+
+# Download file
+aws s3 cp s3://my-bucket-name/myfile.txt ./
+
+# List objects
+aws s3 ls s3://my-bucket-name/
+
+# Sync directory
+aws s3 sync ./local-folder s3://my-bucket-name/folder/
+```
+
+## Python boto3
+
+```python
+import boto3
+
+# S3
+s3 = boto3.client('s3')
+
+# Upload file
+s3.upload_file('local.txt', 'my-bucket', 'remote.txt')
+
+# Download file
+s3.download_file('my-bucket', 'remote.txt', 'local.txt')
+
+# List objects
+response = s3.list_objects_v2(Bucket='my-bucket')
+for obj in response.get('Contents', []):
+    print(obj['Key'])
+```

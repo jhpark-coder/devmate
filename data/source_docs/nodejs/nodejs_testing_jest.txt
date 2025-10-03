@@ -1,0 +1,41 @@
+# Node.js Testing with Jest
+
+## Basic Test
+
+```javascript
+// sum.js
+function sum(a, b) {
+  return a + b;
+}
+module.exports = sum;
+
+// sum.test.js
+const sum = require('./sum');
+
+test('adds 1 + 2 to equal 3', () => {
+  expect(sum(1, 2)).toBe(3);
+});
+```
+
+## Async Tests
+
+```javascript
+test('fetches data', async () => {
+  const data = await fetchData();
+  expect(data).toBeDefined();
+});
+```
+
+## Mocking
+
+```javascript
+jest.mock('./api');
+
+test('calls API', async () => {
+  const api = require('./api');
+  api.fetchUser.mockResolvedValue({ name: 'John' });
+
+  const user = await api.fetchUser(1);
+  expect(user.name).toBe('John');
+});
+```

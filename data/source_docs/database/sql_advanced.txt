@@ -1,0 +1,48 @@
+# SQL Advanced Queries
+
+## Aggregation
+
+```sql
+SELECT COUNT(*) FROM users;
+SELECT AVG(price) FROM products;
+SELECT SUM(total) FROM orders;
+SELECT MAX(salary) FROM employees;
+SELECT MIN(age) FROM users;
+```
+
+## GROUP BY
+
+```sql
+SELECT category, COUNT(*) as count
+FROM products
+GROUP BY category;
+
+SELECT user_id, SUM(total) as total_spent
+FROM orders
+GROUP BY user_id
+HAVING total_spent > 1000;
+```
+
+## Subqueries
+
+```sql
+SELECT name FROM users
+WHERE id IN (
+    SELECT user_id FROM orders WHERE total > 100
+);
+
+SELECT * FROM products
+WHERE price > (SELECT AVG(price) FROM products);
+```
+
+## Transactions
+
+```sql
+START TRANSACTION;
+
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+
+COMMIT;
+-- or ROLLBACK; if error
+```

@@ -1,0 +1,35 @@
+# Node.js JWT Authentication
+
+## Generate JWT
+
+```javascript
+const jwt = require('jsonwebtoken');
+
+const token = jwt.sign(
+  { userId: 123, email: 'user@example.com' },
+  'secret-key',
+  { expiresIn: '1h' }
+);
+```
+
+## Verify JWT
+
+```javascript
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, 'secret-key');
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+app.use('/protected', authMiddleware);
+```

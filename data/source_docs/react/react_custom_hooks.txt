@@ -1,0 +1,85 @@
+# React Custom Hooks
+
+## Creating Custom Hooks
+
+```javascript
+// useLocalStorage.js
+import { useState, useEffect } from 'react';
+
+function useLocalStorage(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : initialValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
+// Usage
+function App() {
+  const [name, setName] = useLocalStorage('name', '');
+
+  return <input value={name} onChange={e => setName(e.target.value)} />;
+}
+```
+
+## useFetch Hook
+
+```javascript
+function useFetch(url) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, [url]);
+
+  return { data, loading, error };
+}
+```
+
+## useDebounce Hook
+
+```javascript
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Usage
+function SearchBar() {
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
+
+  useEffect(() => {
+    if (debouncedSearch) {
+      // API call
+    }
+  }, [debouncedSearch]);
+
+  return <input value={search} onChange={e => setSearch(e.target.value)} />;
+}
+```

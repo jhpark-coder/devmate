@@ -1,0 +1,48 @@
+# Django QuerySets
+
+## Basic Queries
+
+```python
+# Get all objects
+users = User.objects.all()
+
+# Filter
+active_users = User.objects.filter(is_active=True)
+
+# Exclude
+non_staff = User.objects.exclude(is_staff=True)
+
+# Get single object
+user = User.objects.get(id=1)
+```
+
+## Complex Queries
+
+```python
+from django.db.models import Q
+
+# OR condition
+User.objects.filter(Q(name='John') | Q(name='Jane'))
+
+# AND condition
+User.objects.filter(Q(is_active=True) & Q(is_staff=False))
+
+# NOT condition
+User.objects.filter(~Q(name='John'))
+```
+
+## Aggregation
+
+```python
+from django.db.models import Count, Avg, Sum
+
+# Count
+user_count = User.objects.count()
+
+# Aggregate
+stats = User.objects.aggregate(
+    total=Count('id'),
+    avg_age=Avg('age'),
+    total_salary=Sum('salary')
+)
+```

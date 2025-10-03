@@ -1,0 +1,66 @@
+# AWS ECS (Elastic Container Service)
+
+## What is ECS?
+
+Container orchestration service to run Docker containers on AWS.
+
+## ECS Fargate
+
+Serverless compute for containers (no EC2 management needed).
+
+```json
+// Task Definition
+{
+  "family": "my-app",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "web",
+      "image": "my-app:latest",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "DATABASE_URL",
+          "value": "postgres://..."
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/my-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+```
+
+## ECS Service
+
+```bash
+# Create service
+aws ecs create-service   --cluster my-cluster   --service-name my-service   --task-definition my-app:1   --desired-count 2   --launch-type FARGATE   --network-configuration "awsvpcConfiguration={subnets=[subnet-12345],securityGroups=[sg-12345],assignPublicIp=ENABLED}"
+
+# Update service (deploy new version)
+aws ecs update-service   --cluster my-cluster   --service my-service   --task-definition my-app:2   --force-new-deployment
+```
+
+## Auto Scaling
+
+```bash
+# Register scalable target
+aws application-autoscaling register-scalable-target   --service-namespace ecs   --scalable-dimension ecs:service:DesiredCount   --resource-id service/my-cluster/my-service   --min-capacity 2   --max-capacity 10
+
+# Create scaling policy
+aws application-autoscaling put-scaling-policy   --service-namespace ecs   --scalable-dimension ecs:service:DesiredCount   --resource-id service/my-cluster/my-service   --policy-name cpu-scaling   --policy-type TargetTrackingScaling   --target-tracking-scaling-policy-configuration file://scaling-policy.json
+```

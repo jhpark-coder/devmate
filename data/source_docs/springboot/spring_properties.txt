@@ -1,0 +1,142 @@
+# Spring Boot Properties & Configuration
+
+## application.properties vs application.yml
+
+### application.properties
+```properties
+server.port=8080
+spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+spring.datasource.username=root
+spring.datasource.password=password
+```
+
+### application.yml (권장)
+```yaml
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mydb
+    username: root
+    password: password
+```
+
+## @Value
+
+프로퍼티 값을 주입받는 방법
+
+```java
+@Component
+public class AppConfig {
+
+    @Value("${app.name}")
+    private String appName;
+
+    @Value("${app.version:1.0.0}")  // 기본값 설정
+    private String version;
+
+    @Value("${app.max-users:100}")
+    private int maxUsers;
+}
+```
+
+## @ConfigurationProperties (권장)
+
+타입 안전한 프로퍼티 바인딩
+
+```yaml
+# application.yml
+app:
+  name: MyApp
+  version: 1.0.0
+  features:
+    - login
+    - signup
+    - payment
+  database:
+    host: localhost
+    port: 3306
+```
+
+```java
+@ConfigurationProperties(prefix = "app")
+@Component
+public class AppProperties {
+
+    private String name;
+    private String version;
+    private List<String> features;
+    private Database database;
+
+    // Getters and Setters
+
+    public static class Database {
+        private String host;
+        private int port;
+        // Getters and Setters
+    }
+}
+```
+
+## Profile별 설정
+
+### 파일 분리
+```
+application.yml              # 공통 설정
+application-dev.yml          # 개발 환경
+application-prod.yml         # 운영 환경
+```
+
+### 활성화
+```bash
+# 실행 시 프로파일 지정
+java -jar app.jar --spring.profiles.active=prod
+```
+
+```yaml
+# application.yml
+spring:
+  profiles:
+    active: dev  # 기본 프로파일
+```
+
+### @Profile
+```java
+@Configuration
+@Profile("dev")
+public class DevConfig {
+    @Bean
+    public DataSource dataSource() {
+        // 개발용 H2 DB
+        return new H2DataSource();
+    }
+}
+
+@Configuration
+@Profile("prod")
+public class ProdConfig {
+    @Bean
+    public DataSource dataSource() {
+        // 운영용 MySQL
+        return new MySQLDataSource();
+    }
+}
+```
+
+## Environment Variables
+
+```yaml
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/mydb}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:password}
+```
+
+```bash
+# 환경 변수 설정
+export DB_URL=jdbc:mysql://prod-db:3306/mydb
+export DB_USER=admin
+export DB_PASSWORD=secret123
+```

@@ -1,0 +1,63 @@
+# TypeScript Basics
+
+## Types
+
+```typescript
+let name: string = "John";
+let age: number = 30;
+let isActive: boolean = true;
+let numbers: number[] = [1, 2, 3];
+let tuple: [string, number] = ["hello", 10];
+```
+
+## Interfaces
+
+```typescript
+interface User {
+  name: string;
+  age: number;
+  email?: string;  // Optional
+}
+
+const user: User = {
+  name: "John",
+  age: 30
+};
+```
+
+## Type Aliases
+
+```typescript
+type ID = string | number;
+type Point = { x: number; y: number };
+
+function printId(id: ID) {
+  console.log(id);
+}
+```
+
+## Functions
+
+```typescript
+function add(a: number, b: number): number {
+  return a + b;
+}
+
+const multiply = (a: number, b: number): number => a * b;
+```
+
+## Generics
+
+```typescript
+function identity<T>(arg: T): T {
+  return arg;
+}
+
+const result = identity<string>("hello");
+
+interface Box<T> {
+  value: T;
+}
+
+const numberBox: Box<number> = { value: 42 };
+```

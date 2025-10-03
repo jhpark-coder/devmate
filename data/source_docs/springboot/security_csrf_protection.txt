@@ -1,0 +1,144 @@
+# Spring Boot CSRF Protection (CSRF 보호)
+
+## Overview
+CSRF (Cross-Site Request Forgery) protection prevents unauthorized commands from being transmitted from a user that the web application trusts. Spring Security provides built-in CSRF protection.
+
+## CSRF Configuration
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+            )
+            .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/public/**").permitAll()
+                .anyRequest().authenticated()
+            );
+
+        return http.build();
+    }
+}
+```
+
+## CSRF Token Repository
+```java
+@Component
+public class CustomCsrfTokenRepository implements CsrfTokenRepository {
+
+    private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
+    private static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
+
+    @Override
+    public CsrfToken generateToken(HttpServletRequest request) {
+        String token = UUID.randomUUID().toString();
+        return new DefaultCsrfToken(CSRF_HEADER_NAME, "_csrf", token);
+    }
+
+    @Override
+    public void saveToken(CsrfToken token, HttpServletRequest request, HttpServletResponse response) {
+        if (token == null) {
+            Cookie cookie = new Cookie(CSRF_COOKIE_NAME, "");
+            cookie.setMaxAge(0);
+            cookie.setHttpOnly(false);
+            cookie.setPath("/");
+            response.addCookie(cookie);
+        } else {
+            Cookie cookie = new Cookie(CSRF_COOKIE_NAME, token.getToken());
+            cookie.setHttpOnly(false);
+            cookie.setPath("/");
+            cookie.setMaxAge(3600);
+            response.addCookie(cookie);
+        }
+    }
+
+    @Override
+    public CsrfToken loadToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (CSRF_COOKIE_NAME.equals(cookie.getName())) {
+                    return new DefaultCsrfToken(CSRF_HEADER_NAME, "_csrf", cookie.getValue());
+                }
+            }
+        }
+        return null;
+    }
+}
+```
+
+## CSRF Filter for SPA
+```java
+public final class CsrfCookieFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                   FilterChain filterChain) throws ServletException, IOException {
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        csrfToken.getToken(); // Force token generation
+        filterChain.doFilter(request, response);
+    }
+}
+```
+
+## CSRF Token in Controllers
+```java
+@RestController
+@RequestMapping("/api/csrf")
+public class CsrfController {
+
+    @GetMapping("/token")
+    public CsrfToken csrf(CsrfToken token) {
+        return token;
+    }
+}
+```
+
+## Frontend Integration (React)
+```javascript
+// Get CSRF token
+const getCsrfToken = () => {
+    return document.cookie
+        .split('; ')
+        .find(row => row.startsWith('XSRF-TOKEN='))
+        ?.split('=')[1];
+};
+
+// Use in API calls
+fetch('/api/data', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-XSRF-TOKEN': getCsrfToken()
+    },
+    body: JSON.stringify(data)
+});
+```
+
+## Disable CSRF for Specific Endpoints
+```java
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf
+            .ignoringRequestMatchers("/api/webhook/**", "/api/public/**")
+        );
+    return http.build();
+}
+```
+
+## Best Practices
+1. Enable CSRF protection for state-changing operations
+2. Use secure, random tokens
+3. Validate tokens on server side
+4. Store tokens in cookies with HttpOnly=false for JavaScript access
+5. Include tokens in all POST, PUT, DELETE requests
+6. Disable CSRF only for truly stateless APIs
+7. Use SameSite cookie attribute
+8. Implement proper token rotation

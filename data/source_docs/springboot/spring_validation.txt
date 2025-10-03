@@ -1,0 +1,129 @@
+# Spring Boot Validation
+
+## Dependency
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+## Basic Validation Annotations
+
+```java
+public class UserRequest {
+
+    @NotNull(message = "이름은 필수입니다")
+    @NotBlank(message = "이름은 공백일 수 없습니다")
+    @Size(min = 2, max = 20, message = "이름은 2-20자여야 합니다")
+    private String name;
+
+    @NotNull
+    @Email(message = "올바른 이메일 형식이 아닙니다")
+    private String email;
+
+    @Min(value = 18, message = "18세 이상이어야 합니다")
+    @Max(value = 100, message = "100세 이하여야 합니다")
+    private Integer age;
+
+    @Pattern(regexp = "^010-\d{4}-\d{4}$", message = "전화번호 형식이 올바르지 않습니다")
+    private String phone;
+
+    @Past(message = "생일은 과거 날짜여야 합니다")
+    private LocalDate birthDate;
+
+    @Future(message = "예약일은 미래 날짜여야 합니다")
+    private LocalDate reservationDate;
+}
+```
+
+## @Valid in Controller
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    @PostMapping
+    public ResponseEntity<User> createUser(@Valid @RequestBody UserRequest request) {
+        User user = userService.create(request);
+        return ResponseEntity.ok(user);
+    }
+}
+```
+
+## Exception Handling
+
+```java
+@RestControllerAdvice
+public class ValidationExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            errors.put(error.getField(), error.getDefaultMessage());
+        });
+
+        return ResponseEntity.badRequest().body(new ErrorResponse(errors));
+    }
+}
+```
+
+## Custom Validator
+
+```java
+// 1. 어노테이션 정의
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = PhoneValidator.class)
+public @interface ValidPhone {
+    String message() default "Invalid phone number";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+
+// 2. Validator 구현
+public class PhoneValidator implements ConstraintValidator<ValidPhone, String> {
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        if (value == null) return true;
+        return value.matches("^010-\d{4}-\d{4}$");
+    }
+}
+
+// 3. 사용
+public class UserRequest {
+    @ValidPhone(message = "올바른 전화번호 형식이 아닙니다")
+    private String phone;
+}
+```
+
+## Nested Validation
+
+```java
+public class OrderRequest {
+
+    @NotNull
+    @Valid  // 중첩된 객체 검증
+    private Address address;
+
+    @NotEmpty
+    @Valid  // 리스트 각 요소 검증
+    private List<OrderItem> items;
+}
+
+public class Address {
+    @NotBlank
+    private String street;
+
+    @NotBlank
+    private String city;
+
+    @Pattern(regexp = "\d{5}")
+    private String zipCode;
+}
+```

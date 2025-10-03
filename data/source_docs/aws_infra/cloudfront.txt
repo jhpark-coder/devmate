@@ -1,0 +1,149 @@
+# AWS CloudFront (CDN)
+
+## What is CloudFront?
+
+Content Delivery Network for fast global content delivery.
+
+## Create Distribution
+
+```bash
+# Create CloudFront distribution
+aws cloudfront create-distribution   --origin-domain-name my-bucket.s3.amazonaws.com   --default-root-object index.html
+
+# Distribution config (JSON)
+{
+  "CallerReference": "$(date +%s)",
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "S3-my-bucket",
+        "DomainName": "my-bucket.s3.amazonaws.com",
+        "S3OriginConfig": {
+          "OriginAccessIdentity": ""
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "S3-my-bucket",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "AllowedMethods": {
+      "Quantity": 2,
+      "Items": ["GET", "HEAD"]
+    },
+    "Compress": true,
+    "MinTTL": 0,
+    "DefaultTTL": 86400,
+    "MaxTTL": 31536000
+  },
+  "Enabled": true
+}
+```
+
+## Custom Domain with SSL
+
+```bash
+# Add custom domain (CNAME)
+aws cloudfront update-distribution   --id E1234567890ABC   --distribution-config '{
+    "Aliases": {
+      "Quantity": 1,
+      "Items": ["cdn.example.com"]
+    },
+    "ViewerCertificate": {
+      "ACMCertificateArn": "arn:aws:acm:us-east-1:...",
+      "SSLSupportMethod": "sni-only",
+      "MinimumProtocolVersion": "TLSv1.2_2021"
+    }
+  }'
+```
+
+## Cache Behaviors
+
+```bash
+# API endpoints (no cache)
+{
+  "PathPattern": "/api/*",
+  "TargetOriginId": "ALB-origin",
+  "ViewerProtocolPolicy": "https-only",
+  "AllowedMethods": {
+    "Quantity": 7,
+    "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+  },
+  "MinTTL": 0,
+  "DefaultTTL": 0,
+  "MaxTTL": 0
+}
+
+# Static assets (long cache)
+{
+  "PathPattern": "/static/*",
+  "TargetOriginId": "S3-origin",
+  "ViewerProtocolPolicy": "https-only",
+  "Compress": true,
+  "MinTTL": 0,
+  "DefaultTTL": 86400,
+  "MaxTTL": 31536000
+}
+```
+
+## Invalidation (Cache Purge)
+
+```bash
+# Invalidate specific paths
+aws cloudfront create-invalidation   --distribution-id E1234567890ABC   --paths "/index.html" "/css/*"
+
+# Invalidate all
+aws cloudfront create-invalidation   --distribution-id E1234567890ABC   --paths "/*"
+```
+
+## Origin Failover
+
+```bash
+{
+  "Origins": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "Id": "primary",
+        "DomainName": "primary-alb.us-east-1.elb.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "https-only"
+        }
+      },
+      {
+        "Id": "secondary",
+        "DomainName": "secondary-alb.us-west-2.elb.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "https-only"
+        }
+      }
+    ]
+  },
+  "OriginGroups": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "failover-group",
+        "FailoverCriteria": {
+          "StatusCodes": {
+            "Quantity": 3,
+            "Items": [500, 502, 504]
+          }
+        },
+        "Members": {
+          "Quantity": 2,
+          "Items": [
+            {"OriginId": "primary"},
+            {"OriginId": "secondary"}
+          ]
+        }
+      }
+    ]
+  }
+}
+```

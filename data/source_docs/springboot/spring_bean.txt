@@ -1,0 +1,147 @@
+# Spring Bean
+
+## What is Bean?
+
+Spring 컨테이너가 관리하는 객체를 Bean이라고 합니다.
+
+## Component Scanning
+
+Spring Boot는 자동으로 컴포넌트를 찾아서 빈으로 등록합니다.
+
+```java
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+
+`@SpringBootApplication`이 있는 패키지와 하위 패키지를 자동 스캔합니다.
+
+## Stereotype Annotations
+
+### @Component
+가장 기본적인 빈 등록 어노테이션
+
+```java
+@Component
+public class EmailSender {
+    public void send(String to, String message) {
+        // 이메일 전송 로직
+    }
+}
+```
+
+### @Service
+비즈니스 로직을 담당하는 서비스 계층
+
+```java
+@Service
+public class OrderService {
+    public Order createOrder(OrderRequest request) {
+        // 주문 생성 로직
+        return new Order();
+    }
+}
+```
+
+### @Repository
+데이터 액세스 계층 (DAO)
+
+```java
+@Repository
+public class UserRepository {
+    public User findById(Long id) {
+        // DB 조회 로직
+        return user;
+    }
+}
+```
+
+### @Controller / @RestController
+웹 계층
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id);
+    }
+}
+```
+
+## @Configuration & @Bean
+
+수동으로 빈을 등록하는 방법
+
+```java
+@Configuration
+public class AppConfig {
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+## Bean Scope
+
+### Singleton (기본값)
+애플리케이션당 하나의 인스턴스만 생성
+
+```java
+@Component
+@Scope("singleton")  // 기본값이므로 생략 가능
+public class SingletonBean {
+}
+```
+
+### Prototype
+요청할 때마다 새 인스턴스 생성
+
+```java
+@Component
+@Scope("prototype")
+public class PrototypeBean {
+}
+```
+
+### Request (웹 전용)
+HTTP 요청당 하나의 인스턴스
+
+```java
+@Component
+@Scope("request")
+public class RequestScopedBean {
+}
+```
+
+## Lifecycle Callbacks
+
+```java
+@Component
+public class MyBean {
+
+    @PostConstruct
+    public void init() {
+        // 빈 생성 후 초기화
+        System.out.println("Bean initialized");
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        // 빈 소멸 전 정리
+        System.out.println("Bean destroyed");
+    }
+}
+```

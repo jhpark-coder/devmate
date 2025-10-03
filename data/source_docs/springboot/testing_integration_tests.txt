@@ -1,0 +1,474 @@
+# Spring Boot Integration Testing (통합 테스트)
+
+## Overview
+Integration testing in Spring Boot tests how different parts of the application work together, including database interactions, REST APIs, and external services.
+
+## Dependencies
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>testcontainers</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+## Full Application Context Test
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class UserIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+    }
+
+    @Test
+    @Order(1)
+    @DisplayName("Should create user and return 201")
+    void shouldCreateUser() throws Exception {
+        UserDto userDto = new UserDto();
+        userDto.setEmail("test@example.com");
+        userDto.setName("Test User");
+        userDto.setPassword("password123");
+
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(userDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.name").value("Test User"))
+                .andDo(print());
+
+        // Verify in database
+        List<User> users = userRepository.findAll();
+        assertEquals(1, users.size());
+        assertEquals("test@example.com", users.get(0).getEmail());
+    }
+
+    @Test
+    @Order(2)
+    @DisplayName("Should get user by id")
+    void shouldGetUserById() throws Exception {
+        User user = new User();
+        user.setEmail("find@example.com");
+        user.setName("Find User");
+        user.setPassword("password");
+        User savedUser = userRepository.save(user);
+
+        mockMvc.perform(get("/api/users/" + savedUser.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(savedUser.getId()))
+                .andExpect(jsonPath("$.email").value("find@example.com"))
+                .andExpect(jsonPath("$.name").value("Find User"));
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("Should update user")
+    void shouldUpdateUser() throws Exception {
+        User user = new User();
+        user.setEmail("update@example.com");
+        user.setName("Original Name");
+        user.setPassword("password");
+        User savedUser = userRepository.save(user);
+
+        UserDto updateDto = new UserDto();
+        updateDto.setName("Updated Name");
+
+        mockMvc.perform(put("/api/users/" + savedUser.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Name"));
+
+        User updatedUser = userRepository.findById(savedUser.getId()).get();
+        assertEquals("Updated Name", updatedUser.getName());
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("Should delete user")
+    void shouldDeleteUser() throws Exception {
+        User user = new User();
+        user.setEmail("delete@example.com");
+        user.setName("Delete User");
+        user.setPassword("password");
+        User savedUser = userRepository.save(user);
+
+        mockMvc.perform(delete("/api/users/" + savedUser.getId()))
+                .andExpect(status().isNoContent());
+
+        assertFalse(userRepository.findById(savedUser.getId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when user not found")
+    void shouldReturn404WhenUserNotFound() throws Exception {
+        mockMvc.perform(get("/api/users/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Should return 400 for invalid email")
+    void shouldReturn400ForInvalidEmail() throws Exception {
+        UserDto userDto = new UserDto();
+        userDto.setEmail("invalid-email");
+        userDto.setName("Test User");
+        userDto.setPassword("password123");
+
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(userDto)))
+                .andExpect(status().isBadRequest());
+    }
+}
+```
+
+## REST Client Integration Test
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class RestClientIntegrationTest {
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private String getBaseUrl() {
+        return "http://localhost:" + port + "/api/users";
+    }
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+    }
+
+    @Test
+    @DisplayName("Should create user via REST template")
+    void shouldCreateUserViaRestTemplate() {
+        UserDto userDto = new UserDto();
+        userDto.setEmail("rest@example.com");
+        userDto.setName("REST User");
+        userDto.setPassword("password123");
+
+        ResponseEntity<User> response = restTemplate.postForEntity(
+                getBaseUrl(),
+                userDto,
+                User.class
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("rest@example.com", response.getBody().getEmail());
+    }
+
+    @Test
+    @DisplayName("Should get all users")
+    void shouldGetAllUsers() {
+        User user1 = createUser("user1@example.com", "User 1");
+        User user2 = createUser("user2@example.com", "User 2");
+
+        ResponseEntity<User[]> response = restTemplate.getForEntity(
+                getBaseUrl(),
+                User[].class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().length);
+    }
+
+    private User createUser(String email, String name) {
+        User user = new User();
+        user.setEmail(email);
+        user.setName(name);
+        user.setPassword("password");
+        return userRepository.save(user);
+    }
+}
+```
+
+## Database Integration Test with Testcontainers
+```java
+@SpringBootTest
+@Testcontainers
+class DatabaseIntegrationTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Test
+    @DisplayName("Should save user with orders")
+    void shouldSaveUserWithOrders() {
+        User user = new User();
+        user.setEmail("user@example.com");
+        user.setName("Test User");
+        user.setPassword("password");
+
+        Order order1 = new Order();
+        order1.setProductName("Product 1");
+        order1.setQuantity(2);
+        order1.setUser(user);
+
+        Order order2 = new Order();
+        order2.setProductName("Product 2");
+        order2.setQuantity(1);
+        order2.setUser(user);
+
+        user.setOrders(Arrays.asList(order1, order2));
+
+        User savedUser = userRepository.save(user);
+
+        assertNotNull(savedUser.getId());
+        assertEquals(2, savedUser.getOrders().size());
+
+        User foundUser = userRepository.findById(savedUser.getId()).get();
+        assertEquals(2, foundUser.getOrders().size());
+    }
+
+    @Test
+    @DisplayName("Should find users by email")
+    void shouldFindUsersByEmail() {
+        User user = new User();
+        user.setEmail("search@example.com");
+        user.setName("Search User");
+        user.setPassword("password");
+        userRepository.save(user);
+
+        Optional<User> found = userRepository.findByEmail("search@example.com");
+
+        assertTrue(found.isPresent());
+        assertEquals("Search User", found.get().getName());
+    }
+}
+```
+
+## Transaction Integration Test
+```java
+@SpringBootTest
+@Transactional
+class TransactionIntegrationTest {
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Test
+    @DisplayName("Should rollback transaction on exception")
+    void shouldRollbackOnException() {
+        UserDto userDto = new UserDto();
+        userDto.setEmail("rollback@example.com");
+        userDto.setName("Rollback User");
+        userDto.setPassword("password");
+
+        assertThrows(RuntimeException.class, () -> {
+            userService.createUserWithError(userDto);
+        });
+
+        // Verify user was not saved due to rollback
+        Optional<User> user = userRepository.findByEmail("rollback@example.com");
+        assertFalse(user.isPresent());
+    }
+
+    @Test
+    @DisplayName("Should commit transaction on success")
+    void shouldCommitOnSuccess() {
+        UserDto userDto = new UserDto();
+        userDto.setEmail("commit@example.com");
+        userDto.setName("Commit User");
+        userDto.setPassword("password");
+
+        User createdUser = userService.createUser(userDto);
+
+        assertNotNull(createdUser.getId());
+
+        User found = userRepository.findById(createdUser.getId()).get();
+        assertEquals("Commit User", found.getName());
+    }
+}
+```
+
+## Async Service Integration Test
+```java
+@SpringBootTest
+class AsyncServiceIntegrationTest {
+
+    @Autowired
+    private AsyncService asyncService;
+
+    @Test
+    @DisplayName("Should execute async method")
+    void shouldExecuteAsyncMethod() throws Exception {
+        CompletableFuture<String> future = asyncService.processAsync("test");
+
+        // Wait for async execution
+        String result = future.get(5, TimeUnit.SECONDS);
+
+        assertEquals("PROCESSED: test", result);
+    }
+
+    @Test
+    @DisplayName("Should execute multiple async tasks in parallel")
+    void shouldExecuteMultipleAsyncTasks() throws Exception {
+        List<CompletableFuture<String>> futures = Arrays.asList(
+                asyncService.processAsync("task1"),
+                asyncService.processAsync("task2"),
+                asyncService.processAsync("task3")
+        );
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        for (CompletableFuture<String> future : futures) {
+            assertNotNull(future.get());
+        }
+    }
+}
+```
+
+## Security Integration Test
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class SecurityIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Test
+    @DisplayName("Should allow access to public endpoints")
+    void shouldAllowPublicEndpoints() throws Exception {
+        mockMvc.perform(get("/api/public/info"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Should deny access without authentication")
+    void shouldDenyWithoutAuth() throws Exception {
+        mockMvc.perform(get("/api/users"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "user@example.com", roles = "USER")
+    @DisplayName("Should allow access with authentication")
+    void shouldAllowWithAuth() throws Exception {
+        mockMvc.perform(get("/api/users"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "user@example.com", roles = "USER")
+    @DisplayName("Should deny access to admin endpoints")
+    void shouldDenyAdminAccess() throws Exception {
+        mockMvc.perform(get("/api/admin/users"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@example.com", roles = "ADMIN")
+    @DisplayName("Should allow admin access")
+    void shouldAllowAdminAccess() throws Exception {
+        mockMvc.perform(get("/api/admin/users"))
+                .andExpect(status().isOk());
+    }
+}
+```
+
+## Test Configuration
+```java
+@TestConfiguration
+public class IntegrationTestConfig {
+
+    @Bean
+    @Primary
+    public PasswordEncoder testPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public TestDataInitializer testDataInitializer() {
+        return new TestDataInitializer();
+    }
+}
+
+@Component
+public class TestDataInitializer {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public void initTestData() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setName("Test User");
+        user.setPassword("password");
+        userRepository.save(user);
+    }
+
+    public void clearTestData() {
+        userRepository.deleteAll();
+    }
+}
+```
+
+## Best Practices
+1. Use @SpringBootTest for full application context
+2. Use TestContainers for database integration tests
+3. Clean up test data before and after tests
+4. Use meaningful test names
+5. Test error scenarios and edge cases
+6. Use @Transactional for test isolation
+7. Mock external dependencies
+8. Test security configurations
+9. Use random ports for web tests
+10. Organize tests with @Order when needed

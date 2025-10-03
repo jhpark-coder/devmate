@@ -1,0 +1,34 @@
+# Django Advanced Forms
+
+## ModelForm
+
+```python
+from django.forms import ModelForm
+
+class UserForm(ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'form-control'})
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already exists")
+        return email
+```
+
+## Formsets
+
+```python
+from django.forms import formset_factory
+
+UserFormSet = formset_factory(UserForm, extra=3)
+
+formset = UserFormSet(request.POST)
+if formset.is_valid():
+    for form in formset:
+        form.save()
+```

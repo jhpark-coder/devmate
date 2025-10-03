@@ -1,0 +1,149 @@
+# AWS Route 53
+
+## What is Route 53?
+
+Scalable DNS and domain registration service.
+
+## Create Hosted Zone
+
+```bash
+# Create hosted zone
+aws route53 create-hosted-zone   --name example.com   --caller-reference $(date +%s)
+
+# List hosted zones
+aws route53 list-hosted-zones
+```
+
+## DNS Records
+
+```bash
+# Create A record (IPv4)
+aws route53 change-resource-record-sets   --hosted-zone-id Z1234567890ABC   --change-batch '{
+    "Changes": [{
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "www.example.com",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [{"Value": "1.2.3.4"}]
+      }
+    }]
+  }'
+
+# Create CNAME record
+aws route53 change-resource-record-sets   --hosted-zone-id Z1234567890ABC   --change-batch '{
+    "Changes": [{
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "api.example.com",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [{"Value": "my-alb-123.us-east-1.elb.amazonaws.com"}]
+      }
+    }]
+  }'
+```
+
+## Alias Records (AWS Resources)
+
+```bash
+# Point to ALB
+aws route53 change-resource-record-sets   --hosted-zone-id Z1234567890ABC   --change-batch '{
+    "Changes": [{
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "app.example.com",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z35SXDOTRQ7X7K",
+          "DNSName": "my-alb-123.us-east-1.elb.amazonaws.com",
+          "EvaluateTargetHealth": true
+        }
+      }
+    }]
+  }'
+```
+
+## Routing Policies
+
+```bash
+# Weighted routing (A/B testing)
+# 80% traffic to v1, 20% to v2
+aws route53 change-resource-record-sets   --hosted-zone-id Z1234567890ABC   --change-batch '{
+    "Changes": [
+      {
+        "Action": "CREATE",
+        "ResourceRecordSet": {
+          "Name": "app.example.com",
+          "Type": "A",
+          "SetIdentifier": "v1",
+          "Weight": 80,
+          "TTL": 60,
+          "ResourceRecords": [{"Value": "1.2.3.4"}]
+        }
+      },
+      {
+        "Action": "CREATE",
+        "ResourceRecordSet": {
+          "Name": "app.example.com",
+          "Type": "A",
+          "SetIdentifier": "v2",
+          "Weight": 20,
+          "TTL": 60,
+          "ResourceRecords": [{"Value": "5.6.7.8"}]
+        }
+      }
+    ]
+  }'
+
+# Geolocation routing
+aws route53 change-resource-record-sets   --hosted-zone-id Z1234567890ABC   --change-batch '{
+    "Changes": [{
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "app.example.com",
+        "Type": "A",
+        "SetIdentifier": "US-users",
+        "GeoLocation": {"CountryCode": "US"},
+        "TTL": 300,
+        "ResourceRecords": [{"Value": "1.2.3.4"}]
+      }
+    }]
+  }'
+```
+
+## Health Checks
+
+```bash
+# Create health check
+aws route53 create-health-check   --health-check-config     IPAddress=1.2.3.4,Port=80,Type=HTTP,ResourcePath=/health,FullyQualifiedDomainName=example.com
+
+# Failover with health check
+aws route53 change-resource-record-sets   --hosted-zone-id Z1234567890ABC   --change-batch '{
+    "Changes": [
+      {
+        "Action": "CREATE",
+        "ResourceRecordSet": {
+          "Name": "app.example.com",
+          "Type": "A",
+          "SetIdentifier": "primary",
+          "Failover": "PRIMARY",
+          "HealthCheckId": "abc123",
+          "TTL": 60,
+          "ResourceRecords": [{"Value": "1.2.3.4"}]
+        }
+      },
+      {
+        "Action": "CREATE",
+        "ResourceRecordSet": {
+          "Name": "app.example.com",
+          "Type": "A",
+          "SetIdentifier": "secondary",
+          "Failover": "SECONDARY",
+          "TTL": 60,
+          "ResourceRecords": [{"Value": "5.6.7.8"}]
+        }
+      }
+    ]
+  }'
+```

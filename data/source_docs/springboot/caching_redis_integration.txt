@@ -1,0 +1,208 @@
+# Spring Boot Redis Caching (Redis 캐싱)
+
+## Overview
+Redis is an in-memory data structure store used as a database, cache, and message broker. Spring Boot provides excellent integration with Redis for caching.
+
+## Dependencies
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-cache</artifactId>
+</dependency>
+<dependency>
+    <groupId>redis.clients</groupId>
+    <artifactId>jedis</artifactId>
+</dependency>
+```
+
+## Redis Configuration
+```java
+@Configuration
+@EnableCaching
+public class RedisConfig {
+
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
+        configuration.setHostName("localhost");
+        configuration.setPort(6379);
+        configuration.setPassword("your-password");
+        configuration.setDatabase(0);
+
+        JedisClientConfiguration clientConfig = JedisClientConfiguration.builder()
+                .connectTimeout(Duration.ofSeconds(60))
+                .readTimeout(Duration.ofSeconds(60))
+                .usePooling()
+                .build();
+
+        return new JedisConnectionFactory(configuration, clientConfig);
+    }
+
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate() {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(redisConnectionFactory());
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(60))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair
+                    .fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                    .fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .disableCachingNullValues();
+
+        return RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(config)
+                .transactionAware()
+                .build();
+    }
+}
+```
+
+## Using @Cacheable
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Cacheable(value = "users", key = "#id")
+    public User getUserById(Long id) {
+        System.out.println("Fetching from database: " + id);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
+
+    @Cacheable(value = "users", key = "#email")
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
+
+    @Cacheable(value = "userList", unless = "#result.size() == 0")
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @CachePut(value = "users", key = "#user.id")
+    public User updateUser(User user) {
+        return userRepository.save(user);
+    }
+
+    @CacheEvict(value = "users", key = "#id")
+    public void deleteUser(Long id) {
+        userRepository.deleteById(id);
+    }
+
+    @CacheEvict(value = {"users", "userList"}, allEntries = true)
+    public void clearCache() {
+        System.out.println("All caches cleared");
+    }
+}
+```
+
+## Manual Cache Operations
+```java
+@Service
+public class CacheService {
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    public void saveToCache(String key, Object value, long timeoutMinutes) {
+        redisTemplate.opsForValue().set(key, value, timeoutMinutes, TimeUnit.MINUTES);
+    }
+
+    public Object getFromCache(String key) {
+        return redisTemplate.opsForValue().get(key);
+    }
+
+    public void deleteFromCache(String key) {
+        redisTemplate.delete(key);
+    }
+
+    public void saveHash(String key, String hashKey, Object value) {
+        redisTemplate.opsForHash().put(key, hashKey, value);
+    }
+
+    public Object getHash(String key, String hashKey) {
+        return redisTemplate.opsForHash().get(key, hashKey);
+    }
+
+    public void incrementCounter(String key) {
+        redisTemplate.opsForValue().increment(key);
+    }
+
+    public Long getCounter(String key) {
+        Object value = redisTemplate.opsForValue().get(key);
+        return value != null ? Long.parseLong(value.toString()) : 0L;
+    }
+}
+```
+
+## Redis Repository Pattern
+```java
+@RedisHash(value = "Session", timeToLive = 3600)
+@Data
+public class Session {
+    @Id
+    private String id;
+    private String userId;
+    private Map<String, Object> attributes;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastAccessedAt;
+}
+
+@Repository
+public interface SessionRepository extends CrudRepository<Session, String> {
+    List<Session> findByUserId(String userId);
+}
+```
+
+## Application Properties
+```yaml
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    password: your-password
+    database: 0
+    timeout: 60000
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+```
+
+## Best Practices
+1. Set appropriate TTL for cached data
+2. Use meaningful cache names and keys
+3. Handle cache misses gracefully
+4. Implement cache warming for critical data
+5. Monitor cache hit/miss ratios
+6. Use Redis clustering for high availability
+7. Implement proper serialization
+8. Consider memory limits
+9. Use appropriate eviction policies
+10. Secure Redis with password and network restrictions

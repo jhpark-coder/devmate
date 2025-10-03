@@ -1,0 +1,3 @@
+# JPA Specifications 동적 쿼리
+
+Placeholder content

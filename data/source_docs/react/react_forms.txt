@@ -1,0 +1,137 @@
+# React Forms
+
+## Controlled Components
+
+```javascript
+function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const errors = {};
+    if (!email) errors.email = 'Email is required';
+    if (!password) errors.password = 'Password is required';
+    return errors;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const validationErrors = validate();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    // Submit form
+    console.log({ email, password });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="Email"
+      />
+      {errors.email && <span>{errors.email}</span>}
+
+      <input
+        type="password"
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        placeholder="Password"
+      />
+      {errors.password && <span>{errors.password}</span>}
+
+      <button type="submit">Login</button>
+    </form>
+  );
+}
+```
+
+## React Hook Form
+
+```javascript
+import { useForm } from 'react-hook-form';
+
+function RegisterForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  const onSubmit = (data) => {
+    console.log(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input
+        {...register('email', {
+          required: 'Email is required',
+          pattern: {
+            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+            message: 'Invalid email'
+          }
+        })}
+      />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input
+        type="password"
+        {...register('password', {
+          required: 'Password is required',
+          minLength: {
+            value: 8,
+            message: 'Min 8 characters'
+          }
+        })}
+      />
+      {errors.password && <span>{errors.password.message}</span>}
+
+      <button type="submit">Register</button>
+    </form>
+  );
+}
+```
+
+## File Upload
+
+```javascript
+function FileUpload() {
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState('');
+
+  const handleChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleUpload = async () => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+    console.log(data);
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleChange} />
+      {preview && <img src={preview} alt="Preview" />}
+      <button onClick={handleUpload}>Upload</button>
+    </div>
+  );
+}
+```

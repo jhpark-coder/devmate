@@ -1,0 +1,276 @@
+# Spring Boot OAuth2 Integration (OAuth2 통합)
+
+## Overview
+OAuth2 is an authorization framework that enables applications to obtain limited access to user accounts on an HTTP service. Spring Security provides comprehensive OAuth2 support for both client and resource server implementations.
+
+## Dependencies
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-client</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+</dependency>
+```
+
+## OAuth2 Client Configuration
+```java
+@Configuration
+@EnableWebSecurity
+public class OAuth2SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/", "/login**", "/error**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .loginPage("/login")
+                .defaultSuccessUrl("/dashboard", true)
+                .failureUrl("/login?error=true")
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(customOAuth2UserService())
+                )
+            )
+            .logout(logout -> logout
+                .logoutSuccessUrl("/")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+            );
+
+        return http.build();
+    }
+
+    @Bean
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> customOAuth2UserService() {
+        return new CustomOAuth2UserService();
+    }
+}
+```
+
+## Custom OAuth2 User Service
+```java
+@Service
+public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Override
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        OAuth2User oAuth2User = super.loadUser(userRequest);
+
+        String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        String userNameAttributeName = userRequest.getClientRegistration()
+                .getProviderDetails()
+                .getUserInfoEndpoint()
+                .getUserNameAttributeName();
+
+        OAuth2UserInfo userInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(
+            registrationId,
+            oAuth2User.getAttributes()
+        );
+
+        if (StringUtils.isEmpty(userInfo.getEmail())) {
+            throw new OAuth2AuthenticationException("Email not found from OAuth2 provider");
+        }
+
+        User user = userRepository.findByEmail(userInfo.getEmail())
+                .map(existingUser -> updateExistingUser(existingUser, userInfo))
+                .orElse(registerNewUser(userRequest, userInfo));
+
+        return UserPrincipal.create(user, oAuth2User.getAttributes());
+    }
+
+    private User registerNewUser(OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo) {
+        User user = new User();
+        user.setProvider(AuthProvider.valueOf(oAuth2UserRequest.getClientRegistration().getRegistrationId()));
+        user.setProviderId(oAuth2UserInfo.getId());
+        user.setName(oAuth2UserInfo.getName());
+        user.setEmail(oAuth2UserInfo.getEmail());
+        user.setImageUrl(oAuth2UserInfo.getImageUrl());
+        return userRepository.save(user);
+    }
+
+    private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
+        existingUser.setName(oAuth2UserInfo.getName());
+        existingUser.setImageUrl(oAuth2UserInfo.getImageUrl());
+        return userRepository.save(existingUser);
+    }
+}
+```
+
+## OAuth2 User Info Factory
+```java
+public class OAuth2UserInfoFactory {
+
+    public static OAuth2UserInfo getOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
+        if(registrationId.equalsIgnoreCase(AuthProvider.google.toString())) {
+            return new GoogleOAuth2UserInfo(attributes);
+        } else if (registrationId.equalsIgnoreCase(AuthProvider.github.toString())) {
+            return new GithubOAuth2UserInfo(attributes);
+        } else if (registrationId.equalsIgnoreCase(AuthProvider.facebook.toString())) {
+            return new FacebookOAuth2UserInfo(attributes);
+        } else {
+            throw new OAuth2AuthenticationException("Login with " + registrationId + " is not supported");
+        }
+    }
+}
+
+public abstract class OAuth2UserInfo {
+    protected Map<String, Object> attributes;
+
+    public OAuth2UserInfo(Map<String, Object> attributes) {
+        this.attributes = attributes;
+    }
+
+    public abstract String getId();
+    public abstract String getName();
+    public abstract String getEmail();
+    public abstract String getImageUrl();
+}
+
+public class GoogleOAuth2UserInfo extends OAuth2UserInfo {
+
+    public GoogleOAuth2UserInfo(Map<String, Object> attributes) {
+        super(attributes);
+    }
+
+    @Override
+    public String getId() {
+        return (String) attributes.get("sub");
+    }
+
+    @Override
+    public String getName() {
+        return (String) attributes.get("name");
+    }
+
+    @Override
+    public String getEmail() {
+        return (String) attributes.get("email");
+    }
+
+    @Override
+    public String getImageUrl() {
+        return (String) attributes.get("picture");
+    }
+}
+```
+
+## OAuth2 Resource Server Configuration
+```java
+@Configuration
+@EnableWebSecurity
+public class ResourceServerConfig {
+
+    @Bean
+    public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/admin/**").hasAuthority("SCOPE_admin")
+                .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                )
+            );
+
+        return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        return jwtAuthenticationConverter;
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        return JwtDecoders.fromIssuerLocation("https://your-auth-server.com");
+    }
+}
+```
+
+## Application Properties
+```yaml
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - user:email
+              - read:user
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+```
+
+## OAuth2 Login Controller
+```java
+@RestController
+@RequestMapping("/api/auth")
+public class OAuth2LoginController {
+
+    @GetMapping("/user")
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal OAuth2User principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("name", principal.getAttribute("name"));
+        userInfo.put("email", principal.getAttribute("email"));
+        userInfo.put("picture", principal.getAttribute("picture"));
+
+        return ResponseEntity.ok(userInfo);
+    }
+
+    @GetMapping("/login/success")
+    public ResponseEntity<?> loginSuccess(@AuthenticationPrincipal OAuth2User principal) {
+        String token = generateTokenFromOAuth2User(principal);
+        return ResponseEntity.ok(new AuthResponse(token));
+    }
+
+    private String generateTokenFromOAuth2User(OAuth2User oAuth2User) {
+        // Implementation to generate JWT from OAuth2 user
+        return "generated-jwt-token";
+    }
+}
+```
+
+## Best Practices
+1. Store client credentials securely in environment variables
+2. Use HTTPS for all OAuth2 communications
+3. Implement proper state parameter validation to prevent CSRF
+4. Handle OAuth2 errors and edge cases gracefully
+5. Implement token refresh mechanism
+6. Store minimal user information
+7. Implement proper logout functionality
+8. Use appropriate scopes for each provider
+9. Implement rate limiting
+10. Monitor and log OAuth2 authentication attempts

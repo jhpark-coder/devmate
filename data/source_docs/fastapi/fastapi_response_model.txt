@@ -1,0 +1,28 @@
+# FastAPI Response Models
+
+## Basic Response Model
+
+```python
+class UserResponse(BaseModel):
+    id: int
+    email: str
+
+    class Config:
+        from_attributes = True
+
+@app.get("/users/{user_id}", response_model=UserResponse)
+def get_user(user_id: int):
+    return user
+```
+
+## Multiple Response Models
+
+```python
+from typing import Union
+
+@app.get("/items/{item_id}", response_model=Union[ItemPublic, ItemPrivate])
+def get_item(item_id: int, is_admin: bool = False):
+    if is_admin:
+        return ItemPrivate(...)
+    return ItemPublic(...)
+```

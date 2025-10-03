@@ -1,0 +1,177 @@
+# Nginx Reverse Proxy & Load Balancing
+
+## Reverse Proxy
+
+```nginx
+# Proxy to Node.js app
+server {
+    listen 80;
+    server_name api.example.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+## Load Balancing
+
+```nginx
+# Define upstream servers
+upstream backend {
+    least_conn;  # Load balancing method
+    server backend1.example.com:8080;
+    server backend2.example.com:8080;
+    server backend3.example.com:8080;
+}
+
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+## Load Balancing Methods
+
+```nginx
+# Round Robin (default)
+upstream backend {
+    server backend1.example.com;
+    server backend2.example.com;
+}
+
+# Least Connections
+upstream backend {
+    least_conn;
+    server backend1.example.com;
+    server backend2.example.com;
+}
+
+# IP Hash (session persistence)
+upstream backend {
+    ip_hash;
+    server backend1.example.com;
+    server backend2.example.com;
+}
+
+# Weighted
+upstream backend {
+    server backend1.example.com weight=3;
+    server backend2.example.com weight=1;
+}
+```
+
+## Health Checks & Failover
+
+```nginx
+upstream backend {
+    server backend1.example.com max_fails=3 fail_timeout=30s;
+    server backend2.example.com max_fails=3 fail_timeout=30s;
+    server backend3.example.com backup;  # Backup server
+}
+```
+
+## Microservices Routing
+
+```nginx
+server {
+    listen 80;
+    server_name api.example.com;
+
+    # Auth service
+    location /api/auth {
+        proxy_pass http://auth-service:3001;
+        proxy_set_header Host $host;
+    }
+
+    # User service
+    location /api/users {
+        proxy_pass http://user-service:3002;
+        proxy_set_header Host $host;
+    }
+
+    # Order service
+    location /api/orders {
+        proxy_pass http://order-service:3003;
+        proxy_set_header Host $host;
+    }
+}
+```
+
+## WebSocket Proxy
+
+```nginx
+server {
+    listen 80;
+    server_name ws.example.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 86400;
+    }
+}
+```
+
+## Caching
+
+```nginx
+# Cache configuration
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m max_size=1g inactive=60m;
+
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        proxy_cache my_cache;
+        proxy_cache_valid 200 60m;
+        proxy_cache_valid 404 10m;
+        proxy_cache_use_stale error timeout updating;
+        add_header X-Cache-Status $upstream_cache_status;
+
+        proxy_pass http://backend;
+    }
+
+    # Bypass cache for API
+    location /api/ {
+        proxy_cache_bypass 1;
+        proxy_no_cache 1;
+        proxy_pass http://backend;
+    }
+}
+```
+
+## Rate Limiting
+
+```nginx
+# Define rate limit zone
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+
+server {
+    listen 80;
+    server_name api.example.com;
+
+    location /api/ {
+        limit_req zone=api_limit burst=20 nodelay;
+        proxy_pass http://backend;
+    }
+}
+```

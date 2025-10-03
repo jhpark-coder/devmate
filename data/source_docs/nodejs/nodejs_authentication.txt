@@ -1,0 +1,104 @@
+# Node.js Authentication
+
+## JWT Authentication
+
+```javascript
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+// Register
+app.post('/register', async (req, res) => {
+  const { email, password } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await User.create({
+    email,
+    password: hashedPassword
+  });
+
+  res.json({ message: 'User created', userId: user.id });
+});
+
+// Login
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ where: { email } });
+
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const validPassword = await bcrypt.compare(password, user.password);
+
+  if (!validPassword) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = jwt.sign(
+    { userId: user.id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  res.json({ token });
+});
+```
+
+## Auth Middleware
+
+```javascript
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+
+    req.user = user;
+    next();
+  });
+}
+
+// Usage
+app.get('/protected', authenticateToken, (req, res) => {
+  res.json({ message: 'Protected data', user: req.user });
+});
+```
+
+## Refresh Tokens
+
+```javascript
+const refreshTokens = [];
+
+app.post('/token', (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'No token' });
+  }
+
+  if (!refreshTokens.includes(refreshToken)) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+
+  jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: user.userId, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    res.json({ accessToken });
+  });
+});
+```

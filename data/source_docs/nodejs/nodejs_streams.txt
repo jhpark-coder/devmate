@@ -1,0 +1,36 @@
+# Node.js Streams
+
+## Readable Stream
+
+```javascript
+const fs = require('fs');
+
+const readStream = fs.createReadStream('input.txt');
+
+readStream.on('data', (chunk) => {
+  console.log('Received chunk:', chunk);
+});
+
+readStream.on('end', () => {
+  console.log('Stream ended');
+});
+```
+
+## Writable Stream
+
+```javascript
+const writeStream = fs.createWriteStream('output.txt');
+
+writeStream.write('Hello\n');
+writeStream.write('World\n');
+writeStream.end();
+```
+
+## Pipe Streams
+
+```javascript
+const readStream = fs.createReadStream('input.txt');
+const writeStream = fs.createWriteStream('output.txt');
+
+readStream.pipe(writeStream);
+```

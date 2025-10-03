@@ -1,0 +1,45 @@
+# Node.js Async/Await
+
+## Basic Usage
+
+```javascript
+async function fetchData() {
+  try {
+    const response = await fetch('https://api.example.com/data');
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+```
+
+## Promise.all
+
+```javascript
+async function fetchMultiple() {
+  const [users, posts, comments] = await Promise.all([
+    fetch('/api/users'),
+    fetch('/api/posts'),
+    fetch('/api/comments')
+  ]);
+
+  return { users, posts, comments };
+}
+```
+
+## Error Handling
+
+```javascript
+async function riskyOperation() {
+  try {
+    const result = await doSomething();
+    return result;
+  } catch (error) {
+    console.error('Operation failed:', error);
+    throw error;
+  } finally {
+    console.log('Cleanup');
+  }
+}
+```

@@ -1,0 +1,45 @@
+# React Memoization
+
+## React.memo
+
+```javascript
+const ExpensiveComponent = React.memo(({ data }) => {
+  return <div>{data}</div>;
+});
+
+// Only re-renders if data changes
+```
+
+## useMemo Hook
+
+```javascript
+function FilteredList({ items, filter }) {
+  const filteredItems = useMemo(() => {
+    return items.filter(item => item.includes(filter));
+  }, [items, filter]);
+
+  return (
+    <ul>
+      {filteredItems.map(item => <li key={item}>{item}</li>)}
+    </ul>
+  );
+}
+```
+
+## useCallback Hook
+
+```javascript
+function Parent() {
+  const [count, setCount] = useState(0);
+
+  const handleClick = useCallback(() => {
+    console.log('Clicked', count);
+  }, [count]);
+
+  return <Child onClick={handleClick} />;
+}
+
+const Child = React.memo(({ onClick }) => {
+  return <button onClick={onClick}>Click me</button>;
+});
+```

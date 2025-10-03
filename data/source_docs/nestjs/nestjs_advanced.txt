@@ -1,0 +1,121 @@
+# NestJS Advanced
+
+## DTOs (Data Transfer Objects)
+
+```typescript
+import { IsString, IsEmail, MinLength } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString()
+  @MinLength(3)
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
+```
+
+## Dependency Injection
+
+```typescript
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    private readonly authService: AuthService,
+  ) {}
+
+  async create(createUserDto: CreateUserDto) {
+    const hashedPassword = await this.authService.hashPassword(
+      createUserDto.password
+    );
+
+    const user = this.usersRepository.create({
+      ...createUserDto,
+      password: hashedPassword
+    });
+
+    return this.usersRepository.save(user);
+  }
+}
+```
+
+## Middleware
+
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: Function) {
+    console.log(`Request: ${req.method} ${req.url}`);
+    next();
+  }
+}
+
+// In module
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('*');
+  }
+}
+```
+
+## Guards (Authentication)
+
+```typescript
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers.authorization;
+
+    if (!token) {
+      return false;
+    }
+
+    // Verify token
+    return this.validateToken(token);
+  }
+
+  private validateToken(token: string): boolean {
+    // Token validation logic
+    return true;
+  }
+}
+
+// Usage
+@Controller('users')
+@UseGuards(AuthGuard)
+export class UsersController {}
+```
+
+## Interceptors
+
+```typescript
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+@Injectable()
+export class TransformInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(
+      map(data => ({
+        success: true,
+        data,
+        timestamp: new Date().toISOString()
+      }))
+    );
+  }
+}
+```

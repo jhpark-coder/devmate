@@ -1,0 +1,55 @@
+# React Component Lifecycle
+
+## Class Component Lifecycle
+
+```javascript
+class MyComponent extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { count: 0 };
+  }
+
+  componentDidMount() {
+    // After first render
+    console.log('Component mounted');
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    // After update
+    if (prevState.count !== this.state.count) {
+      console.log('Count changed');
+    }
+  }
+
+  componentWillUnmount() {
+    // Cleanup
+    console.log('Component will unmount');
+  }
+
+  render() {
+    return <div>{this.state.count}</div>;
+  }
+}
+```
+
+## Functional Component with Hooks
+
+```javascript
+function MyComponent() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    console.log('Mounted');
+
+    return () => {
+      console.log('Cleanup');
+    };
+  }, []); // Empty deps = componentDidMount
+
+  useEffect(() => {
+    console.log('Count changed');
+  }, [count]); // Deps = componentDidUpdate
+
+  return <div>{count}</div>;
+}
+```

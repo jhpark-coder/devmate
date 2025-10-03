@@ -1,0 +1,55 @@
+# Redis Basics
+
+## What is Redis?
+
+Redis is an in-memory data structure store used as:
+- Database
+- Cache
+- Message broker
+- Streaming engine
+
+## Basic Commands
+
+```bash
+# String operations
+SET key "value"
+GET key
+DEL key
+
+# Increment/Decrement
+INCR counter
+DECR counter
+INCRBY counter 5
+
+# Expiration
+EXPIRE key 60  # expire in 60 seconds
+TTL key        # check time to live
+```
+
+## Data Types
+
+```bash
+# Strings
+SET name "John"
+GET name
+
+# Lists
+LPUSH mylist "first"
+RPUSH mylist "last"
+LRANGE mylist 0 -1
+
+# Sets
+SADD myset "member1"
+SADD myset "member2"
+SMEMBERS myset
+
+# Hashes
+HSET user:1 name "John"
+HSET user:1 age 30
+HGETALL user:1
+
+# Sorted Sets
+ZADD scores 100 "Alice"
+ZADD scores 95 "Bob"
+ZRANGE scores 0 -1 WITHSCORES
+```

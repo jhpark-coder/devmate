@@ -1,0 +1,39 @@
+# Django with Celery
+
+## Setup
+
+```python
+# celery.py
+from celery import Celery
+
+app = Celery('myproject')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+```
+
+## Tasks
+
+```python
+from celery import shared_task
+
+@shared_task
+def send_email_task(email):
+    # Send email
+    pass
+
+# Call task
+send_email_task.delay('user@example.com')
+```
+
+## Periodic Tasks
+
+```python
+from celery.schedules import crontab
+
+app.conf.beat_schedule = {
+    'send-report-every-monday': {
+        'task': 'tasks.send_weekly_report',
+        'schedule': crontab(hour=9, minute=0, day_of_week=1),
+    },
+}
+```

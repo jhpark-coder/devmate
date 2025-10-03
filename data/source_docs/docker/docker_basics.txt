@@ -1,0 +1,56 @@
+# Docker Basics
+
+## What is Docker?
+
+Docker is a platform for developing, shipping, and running applications in containers.
+
+## Basic Commands
+
+```bash
+# Images
+docker pull nginx:latest
+docker images
+docker rmi image_id
+
+# Containers
+docker run -d -p 80:80 nginx
+docker ps           # running containers
+docker ps -a        # all containers
+docker stop container_id
+docker rm container_id
+
+# Logs and Exec
+docker logs container_id
+docker exec -it container_id bash
+```
+
+## Dockerfile
+
+```dockerfile
+# Node.js application
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+```
+
+## Build and Run
+
+```bash
+# Build image
+docker build -t myapp:1.0 .
+
+# Run container
+docker run -d -p 3000:3000 --name myapp myapp:1.0
+
+# Environment variables
+docker run -d -e DATABASE_URL=postgres://... myapp:1.0
+```

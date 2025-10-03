@@ -1,0 +1,242 @@
+# React useState Hook (useState 훅)
+
+## Overview
+useState is a React Hook that lets you add state to functional components. It returns a state variable and a function to update it.
+
+## Basic Usage
+```javascript
+import { useState } from 'react';
+
+function Counter() {
+    const [count, setCount] = useState(0);
+
+    return (
+        <div>
+            <p>Count: {count}</p>
+            <button onClick={() => setCount(count + 1)}>
+                Increment
+            </button>
+            <button onClick={() => setCount(count - 1)}>
+                Decrement
+            </button>
+            <button onClick={() => setCount(0)}>
+                Reset
+            </button>
+        </div>
+    );
+}
+```
+
+## Multiple State Variables
+```javascript
+function UserForm() {
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [age, setAge] = useState(0);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log({ firstName, lastName, email, age });
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First Name"
+            />
+            <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last Name"
+            />
+            <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+            />
+            <input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(parseInt(e.target.value))}
+                placeholder="Age"
+            />
+            <button type="submit">Submit</button>
+        </form>
+    );
+}
+```
+
+## Object State
+```javascript
+function Profile() {
+    const [user, setUser] = useState({
+        name: 'John Doe',
+        email: 'john@example.com',
+        age: 30,
+        address: {
+            street: '123 Main St',
+            city: 'New York',
+            country: 'USA'
+        }
+    });
+
+    const updateName = (newName) => {
+        setUser(prev => ({
+            ...prev,
+            name: newName
+        }));
+    };
+
+    const updateAddress = (field, value) => {
+        setUser(prev => ({
+            ...prev,
+            address: {
+                ...prev.address,
+                [field]: value
+            }
+        }));
+    };
+
+    return (
+        <div>
+            <h2>{user.name}</h2>
+            <p>Email: {user.email}</p>
+            <p>Age: {user.age}</p>
+            <p>Address: {user.address.street}, {user.address.city}</p>
+            <button onClick={() => updateName('Jane Doe')}>
+                Change Name
+            </button>
+            <button onClick={() => updateAddress('city', 'Los Angeles')}>
+                Change City
+            </button>
+        </div>
+    );
+}
+```
+
+## Array State
+```javascript
+function TodoList() {
+    const [todos, setTodos] = useState([]);
+    const [input, setInput] = useState('');
+
+    const addTodo = () => {
+        if (input.trim()) {
+            setTodos(prev => [...prev, {
+                id: Date.now(),
+                text: input,
+                completed: false
+            }]);
+            setInput('');
+        }
+    };
+
+    const toggleTodo = (id) => {
+        setTodos(prev => prev.map(todo =>
+            todo.id === id
+                ? { ...todo, completed: !todo.completed }
+                : todo
+        ));
+    };
+
+    const deleteTodo = (id) => {
+        setTodos(prev => prev.filter(todo => todo.id !== id));
+    };
+
+    return (
+        <div>
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+            />
+            <button onClick={addTodo}>Add</button>
+            <ul>
+                {todos.map(todo => (
+                    <li key={todo.id}>
+                        <input
+                            type="checkbox"
+                            checked={todo.completed}
+                            onChange={() => toggleTodo(todo.id)}
+                        />
+                        <span style={{
+                            textDecoration: todo.completed ? 'line-through' : 'none'
+                        }}>
+                            {todo.text}
+                        </span>
+                        <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+```
+
+## Lazy Initialization
+```javascript
+function ExpensiveComponent() {
+    // Function is only called once during initial render
+    const [state, setState] = useState(() => {
+        const initialState = someExpensiveComputation();
+        return initialState;
+    });
+
+    const someExpensiveComputation = () => {
+        console.log('Computing initial state...');
+        let result = 0;
+        for (let i = 0; i < 1000000; i++) {
+            result += i;
+        }
+        return result;
+    };
+
+    return <div>Result: {state}</div>;
+}
+```
+
+## Functional Updates
+```javascript
+function MultiClickCounter() {
+    const [count, setCount] = useState(0);
+
+    const handleMultipleClicks = () => {
+        // Wrong: These won't work as expected
+        // setCount(count + 1);
+        // setCount(count + 1);
+        // setCount(count + 1);
+
+        // Correct: Use functional update
+        setCount(c => c + 1);
+        setCount(c => c + 1);
+        setCount(c => c + 1);
+    };
+
+    return (
+        <div>
+            <p>Count: {count}</p>
+            <button onClick={handleMultipleClicks}>
+                Add 3
+            </button>
+        </div>
+    );
+}
+```
+
+## Best Practices
+1. Use functional updates when new state depends on previous state
+2. Don't mutate state directly - always create new objects/arrays
+3. Consider using useReducer for complex state logic
+4. Group related state into objects
+5. Use lazy initialization for expensive computations
+6. Keep state as simple as possible
+7. Lift state up when multiple components need it
+8. Consider using Context API for deeply nested props
+9. Initialize state with appropriate default values
+10. Use TypeScript for better type safety

@@ -1,0 +1,93 @@
+# AWS Core Services
+
+## RDS (Relational Database Service)
+
+Managed relational database.
+
+```python
+import boto3
+
+rds = boto3.client('rds')
+
+# Create DB instance
+response = rds.create_db_instance(
+    DBInstanceIdentifier='mydb',
+    DBInstanceClass='db.t3.micro',
+    Engine='postgres',
+    MasterUsername='admin',
+    MasterUserPassword='password123',
+    AllocatedStorage=20
+)
+```
+
+## Lambda
+
+Serverless compute service.
+
+```python
+# lambda_function.py
+import json
+
+def lambda_handler(event, context):
+    name = event.get('name', 'World')
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': f'Hello {name}!'
+        })
+    }
+```
+
+## API Gateway + Lambda
+
+```python
+# Lambda with API Gateway event
+def lambda_handler(event, context):
+    # Parse request
+    body = json.loads(event['body'])
+
+    # Process
+    result = process_data(body)
+
+    # Return response
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json'
+        },
+        'body': json.dumps(result)
+    }
+```
+
+## DynamoDB
+
+NoSQL database service.
+
+```python
+import boto3
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('Users')
+
+# Put item
+table.put_item(
+    Item={
+        'user_id': '123',
+        'name': 'John Doe',
+        'email': 'john@example.com'
+    }
+)
+
+# Get item
+response = table.get_item(
+    Key={'user_id': '123'}
+)
+user = response['Item']
+
+# Query
+response = table.query(
+    KeyConditionExpression='user_id = :id',
+    ExpressionAttributeValues={':id': '123'}
+)
+```

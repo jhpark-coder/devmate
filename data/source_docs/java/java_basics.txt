@@ -1,0 +1,31 @@
+# Java Basics
+
+## What is Java?
+
+Java is a popular programming language, created in 1995.
+It is owned by Oracle, and more than 3 billion devices run Java.
+
+## Java Syntax
+
+```java
+public class Main {
+  public static void main(String[] args) {
+    System.out.println("Hello World");
+  }
+}
+```
+
+## Variables
+
+```java
+int myNum = 5;
+double myFloatNum = 5.99;
+char myLetter = 'D';
+boolean myBool = true;
+String myText = "Hello";
+```
+
+## Data Types
+
+- **Primitive types**: byte, short, int, long, float, double, boolean, char
+- **Reference types**: String, Arrays, Classes, Interfaces

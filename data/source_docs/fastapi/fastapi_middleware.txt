@@ -1,0 +1,51 @@
+# FastAPI Middleware
+
+## CORS Middleware
+
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+## Custom Middleware
+
+```python
+from starlette.middleware.base import BaseHTTPMiddleware
+from time import time
+
+class TimingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start_time = time()
+        response = await call_next(request)
+        process_time = time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+
+app.add_middleware(TimingMiddleware)
+```
+
+## Authentication Middleware
+
+```python
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        token = request.headers.get("Authorization")
+
+        if token:
+            request.state.user = verify_token(token)
+        else:
+            request.state.user = None
+
+        response = await call_next(request)
+        return response
+```
