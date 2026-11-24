@@ -11,12 +11,11 @@ import streamlit as st
 import asyncio
 from pathlib import Path
 
-from langchain_openai import OpenAIEmbeddings
-
 from app.application.document_processor import DocumentProcessor
 from app.application.query_handler import QueryHandler
 from app.infrastructure.vector_store import FAISSVectorStore
-from app.infrastructure.llm_client import OpenAIClient, OllamaClient
+from app.infrastructure.llm_client import OllamaClient
+from app.infrastructure.embeddings import create_embeddings, is_embedding_model_available
 from app.infrastructure.text_splitter import CustomTextSplitter
 from app.domain.models import Conversation, SourceType
 from app.config import settings
@@ -37,33 +36,37 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # LLM 선택
+    # LLM 선택 (로컬 Ollama에 설치된 모델 중에서)
     st.markdown("### 🧠 LLM 선택")
 
-    llm_option = st.radio(
-        "사용할 LLM을 선택하세요:",
-        ["Llama 3.2 (무료)", "GPT-4 (유료)"],
-        index=0,
-        help="Llama 3.2: 무료, 로컬 실행\nGPT-4: 빠르고 정확 (유료)",
-        key="llm_option"
-    )
-
-    # Ollama 상태 확인
-    if "Llama" in llm_option or "무료" in llm_option:
-        ollama_client = OllamaClient()
-        if ollama_client.is_available():
+    ollama_client = OllamaClient()
+    if ollama_client.is_available():
+        chat_models = ollama_client.list_chat_models()
+        if chat_models:
+            default_index = next(
+                (i for i, name in enumerate(chat_models)
+                 if name == settings.OLLAMA_MODEL
+                 or name.split(":")[0] == settings.OLLAMA_MODEL),
+                0
+            )
+            st.selectbox(
+                "답변에 사용할 모델:",
+                chat_models,
+                index=default_index,
+                help="이 PC의 Ollama에 설치된 모델입니다. 모두 무료로 로컬에서 실행됩니다.",
+                key="llm_option"
+            )
             st.success("✅ Ollama 연결됨")
-            models = ollama_client.list_models()
-            if models:
-                st.info(f"사용 가능한 모델: {', '.join(models)}")
         else:
-            st.error("❌ Ollama 연결 실패")
-            st.markdown("""
-            **Ollama 설치 방법:**
-            1. [ollama.com](https://ollama.com/download) 에서 다운로드
-            2. 설치 후 `ollama pull llama3.2` 실행
-            3. `ollama serve` 로 서버 시작
-            """)
+            st.warning(f"⚠️ 설치된 답변용 모델이 없습니다.\n\n`ollama pull {settings.OLLAMA_MODEL}` 을 실행하세요.")
+    else:
+        st.error("❌ Ollama 연결 실패")
+        st.markdown(f"""
+        **Ollama 설치 방법:**
+        1. [ollama.com](https://ollama.com/download) 에서 다운로드
+        2. `ollama pull {settings.OLLAMA_MODEL}` (답변용)
+        3. `ollama pull {settings.OLLAMA_EMBED_MODEL}` (검색용 임베딩)
+        """)
 
     st.markdown("---")
 
@@ -177,7 +180,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.markdown("Made with ❤️ by Claude Code")
+    st.markdown("Made by [jhpark-coder](https://github.com/jhpark-coder/devmate)")
 
 
 @st.cache_resource
@@ -187,11 +190,13 @@ def initialize_vector_store():
 
     임베딩과 벡터 스토어만 캐싱합니다.
     """
-    # OpenAI Embeddings
-    embeddings = OpenAIEmbeddings(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model="text-embedding-ada-002"
-    )
+    # 로컬 임베딩 (Ollama)
+    if not is_embedding_model_available():
+        st.error(f"❌ 임베딩 모델 `{settings.OLLAMA_EMBED_MODEL}` 을 찾을 수 없습니다.")
+        st.info(f"Ollama를 켠 뒤 `ollama pull {settings.OLLAMA_EMBED_MODEL}` 을 실행하세요.")
+        st.stop()
+
+    embeddings = create_embeddings()
 
     # FAISS Vector Store (프로덕션 인덱스)
     index_path = settings.VECTOR_STORE_PATH / "production_index"
@@ -201,8 +206,7 @@ def initialize_vector_store():
         st.info("""
         다음 명령어를 먼저 실행하세요:
         ```bash
-        python scripts/download_docs.py
-        ./venv/Scripts/python scripts/init_index.py
+        python scripts/init_index.py
         ```
         """)
         st.stop()
@@ -215,22 +219,18 @@ def initialize_vector_store():
     return vector_store
 
 
-def initialize_query_handler(llm_choice: str, vector_store):
+def initialize_query_handler(model_name: str, vector_store):
     """
     쿼리 핸들러 초기화 (LLM 선택 기반)
 
     Args:
-        llm_choice: 선택된 LLM 옵션
+        model_name: 사용할 Ollama 모델 이름
         vector_store: 초기화된 벡터 스토어
 
     Returns:
         QueryHandler 인스턴스
     """
-    # LLM Client 선택
-    if "Llama" in llm_choice or "무료" in llm_choice:
-        llm_client = OllamaClient(model="llama3.2")
-    else:
-        llm_client = OpenAIClient()
+    llm_client = OllamaClient(model=model_name)
 
     # Query Handler
     query_handler = QueryHandler(
@@ -527,7 +527,7 @@ def main():
 
     # 사이드바에서 선택된 LLM 가져오기
     # (사이드바는 이미 위에서 렌더링됨)
-    llm_option = st.session_state.get('llm_option', 'Llama 3.2 (무료)')
+    llm_option = st.session_state.get('llm_option', settings.OLLAMA_MODEL)
 
     # 쿼리 핸들러 초기화 (선택된 LLM 사용)
     query_handler = initialize_query_handler(llm_option, vector_store)

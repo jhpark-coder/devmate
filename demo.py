@@ -10,12 +10,11 @@ DevMate 데모 스크립트
 import asyncio
 from pathlib import Path
 
-from langchain_openai import OpenAIEmbeddings
-
 from app.application.document_processor import DocumentProcessor
 from app.application.query_handler import QueryHandler
 from app.infrastructure.vector_store import FAISSVectorStore
-from app.infrastructure.llm_client import OpenAIClient
+from app.infrastructure.llm_client import OllamaClient
+from app.infrastructure.embeddings import create_embeddings, is_embedding_model_available
 from app.infrastructure.text_splitter import CustomTextSplitter
 from app.domain.models import SourceType, Conversation
 from app.config import settings
@@ -31,10 +30,12 @@ async def main():
     # 1. 초기화
     print("\n📦 시스템 초기화 중...")
 
-    embeddings = OpenAIEmbeddings(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model="text-embedding-ada-002"
-    )
+    if not is_embedding_model_available():
+        print(f"\n❌ 임베딩 모델 '{settings.OLLAMA_EMBED_MODEL}' 을 찾을 수 없습니다.")
+        print(f"   Ollama를 켠 뒤 'ollama pull {settings.OLLAMA_EMBED_MODEL}' 을 실행하세요.")
+        return
+
+    embeddings = create_embeddings()
 
     # 프로덕션 인덱스 사용 (init_index.py로 생성된 인덱스)
     vector_store = FAISSVectorStore(
@@ -52,7 +53,8 @@ async def main():
         text_splitter=text_splitter
     )
 
-    llm_client = OpenAIClient()
+    llm_client = OllamaClient()
+    print(f"   답변 모델: {llm_client.model} (로컬 Ollama)")
 
     query_handler = QueryHandler(
         vector_store=vector_store,
@@ -77,7 +79,7 @@ async def main():
         return
 
     print(f"\n✅ 인덱스 발견: {index_path}")
-    print(f"   FastAPI, LangChain, Python 공식 문서가 준비되어 있습니다.")
+    print(f"   22개 기술, 140개 공식 문서가 준비되어 있습니다.")
 
     # 추가 문서 업로드 (선택사항)
     upload_choice = input("\n추가 문서를 업로드하시겠습니까? (y/n): ").lower()

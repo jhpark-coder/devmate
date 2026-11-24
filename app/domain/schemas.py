@@ -200,7 +200,7 @@ class QueryMetadata(BaseModel):
     """쿼리 메타데이터"""
     token_count: int
     response_time_ms: int
-    model: str = "gpt-3.5-turbo"
+    model: str = "llama3.2"
     cost_usd: Optional[float] = None
 
 
@@ -228,8 +228,8 @@ class QueryResponse(BaseModel):
                 "metadata": {
                     "token_count": 450,
                     "response_time_ms": 2340,
-                    "model": "gpt-3.5-turbo",
-                    "cost_usd": 0.0009
+                    "model": "llama3.2",
+                    "cost_usd": 0.0
                 }
             }
         }
