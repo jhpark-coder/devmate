@@ -15,21 +15,23 @@ import os
 from pathlib import Path
 import shutil
 
-from langchain_openai import OpenAIEmbeddings
+from app.infrastructure.embeddings import create_embeddings, is_embedding_model_available
 
 from app.application.document_processor import DocumentProcessor
 from app.application.query_handler import QueryHandler
 from app.infrastructure.vector_store import FAISSVectorStore
-from app.infrastructure.llm_client import OpenAIClient
+from app.infrastructure.llm_client import OllamaClient
 from app.infrastructure.text_splitter import CustomTextSplitter
 from app.domain.models import Conversation, SourceType
 from app.config import settings
 
 
-# OpenAI API 키 확인
+# 로컬 Ollama 임베딩·답변 모델 확인
 pytestmark = pytest.mark.skipif(
-    not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "",
-    reason="OPENAI_API_KEY not set"
+    not is_embedding_model_available()
+    or settings.OLLAMA_MODEL not in OllamaClient().list_models()
+    and f"{settings.OLLAMA_MODEL}:latest" not in OllamaClient().list_models(),
+    reason=f"Ollama 모델 '{settings.OLLAMA_EMBED_MODEL}' 또는 '{settings.OLLAMA_MODEL}' 없음"
 )
 
 
@@ -49,11 +51,8 @@ def test_documents_path(tmp_path):
 
 @pytest.fixture
 def embeddings():
-    """OpenAI Embeddings 클라이언트"""
-    return OpenAIEmbeddings(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model="text-embedding-ada-002"
-    )
+    """로컬 Ollama 임베딩 클라이언트"""
+    return create_embeddings()
 
 
 @pytest.fixture
@@ -99,7 +98,7 @@ def document_processor(vector_store, text_splitter, test_documents_path):
 @pytest.fixture
 def llm_client():
     """LLM 클라이언트"""
-    return OpenAIClient()
+    return OllamaClient()
 
 
 @pytest.fixture

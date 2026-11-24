@@ -16,7 +16,7 @@ import pickle
 import numpy as np
 from pathlib import Path
 
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document as LangChainDocument
 
@@ -126,17 +126,17 @@ class FAISSVectorStore(VectorStore):
 
     def __init__(
         self,
-        embeddings: OpenAIEmbeddings,
+        embeddings: Embeddings,
         index_path: str,
-        dimension: int = 1536  # OpenAI ada-002 dimension
+        dimension: int = 1024  # bge-m3 임베딩 차원
     ):
         """
         FAISS 벡터 스토어 초기화
 
         Args:
-            embeddings: OpenAI 임베딩 클라이언트
+            embeddings: 임베딩 클라이언트 (기본: 로컬 Ollama bge-m3)
             index_path: 인덱스 저장 경로
-            dimension: 벡터 차원 (기본값: 1536)
+            dimension: 벡터 차원 (기본값: 1024)
         """
         self.embeddings = embeddings
         self.index_path = Path(index_path)
@@ -189,7 +189,7 @@ class FAISSVectorStore(VectorStore):
 
         Process:
         1. 청크 내용을 LangChain Document로 변환
-        2. OpenAI API로 임베딩 생성 (비용 발생)
+        2. 로컬 임베딩 모델로 벡터 생성
         3. FAISS 인덱스에 추가
         4. 메타데이터 저장
         """
@@ -331,11 +331,19 @@ class FAISSVectorStore(VectorStore):
             raise FileNotFoundError(f"Index not found at {self.index_path}")
 
         # FAISS 인덱스 로드
-        self.vector_store = FAISS.load_local(
-            str(self.index_path),
-            self.embeddings,
-            allow_dangerous_deserialization=True  # 로컬 파일이므로 안전
-        )
+        try:
+            # langchain-community 0.0.25 이상: pickle 로드를 명시적으로 허용해야 함
+            self.vector_store = FAISS.load_local(
+                str(self.index_path),
+                self.embeddings,
+                allow_dangerous_deserialization=True  # 직접 만든 로컬 파일이므로 안전
+            )
+        except TypeError:
+            # langchain-community 0.0.24 이하: 해당 인자가 없음
+            self.vector_store = FAISS.load_local(
+                str(self.index_path),
+                self.embeddings
+            )
 
         # 메타데이터 로드
         metadata_path = self.index_path / "chunk_metadata.pkl"

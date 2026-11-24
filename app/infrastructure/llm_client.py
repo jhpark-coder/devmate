@@ -1,7 +1,8 @@
 """
-LLM 클라이언트 (OpenAI Wrapper + Ollama)
+LLM 클라이언트 (로컬 Ollama)
 
-OpenAI API와 로컬 Ollama LLM을 감싸는 추상화 레이어입니다.
+로컬에서 실행되는 Ollama LLM을 감싸는 추상화 레이어입니다.
+외부 API 키 없이 동작합니다.
 
 ARCHITECTURE.md 원칙:
 - Infrastructure Layer: 외부 시스템 통신
@@ -13,9 +14,6 @@ from abc import ABC, abstractmethod
 import requests
 import json
 
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-
 from app.config import settings
 
 
@@ -23,7 +21,7 @@ class LLMClient(ABC):
     """
     LLM 클라이언트 추상 인터페이스
 
-    추후 OpenAI → Anthropic/Gemini 등으로 교체 가능
+    다른 LLM 백엔드를 붙일 때 이 인터페이스만 구현하면 됨
     """
 
     @abstractmethod
@@ -45,123 +43,6 @@ class LLMClient(ABC):
             생성된 응답 텍스트
         """
         pass
-
-
-class OpenAIClient(LLMClient):
-    """
-    OpenAI LLM 클라이언트 구현
-
-    사용 모델:
-    - gpt-3.5-turbo (기본, 빠름, 저렴)
-    - gpt-4 (옵션, 정확함, 비용 30배)
-    """
-
-    def __init__(
-        self,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None
-    ):
-        """
-        OpenAI 클라이언트 초기화
-
-        Args:
-            api_key: OpenAI API 키 (기본값: config.OPENAI_API_KEY)
-            model: 모델 이름 (기본값: config.OPENAI_MODEL)
-            temperature: 기본 온도 (기본값: config.OPENAI_TEMPERATURE)
-        """
-        self.api_key = api_key or settings.OPENAI_API_KEY
-        self.model = model or settings.OPENAI_MODEL
-        self.default_temperature = temperature if temperature is not None else settings.OPENAI_TEMPERATURE
-
-        # LangChain ChatOpenAI 클라이언트
-        self.client = ChatOpenAI(
-            api_key=self.api_key,
-            model=self.model,
-            temperature=self.default_temperature
-        )
-
-    async def generate(
-        self,
-        messages: List[Dict[str, str]],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None
-    ) -> str:
-        """
-        대화 생성
-
-        Args:
-            messages: 대화 메시지 리스트
-            temperature: 생성 온도 (None일 경우 기본값 사용)
-            max_tokens: 최대 토큰 수
-
-        Returns:
-            생성된 응답 텍스트
-
-        Raises:
-            ValueError: 메시지 형식 오류
-            Exception: API 호출 실패
-        """
-        if not messages:
-            raise ValueError("Messages cannot be empty")
-
-        # LangChain 메시지 형식으로 변환
-        langchain_messages = []
-        for msg in messages:
-            role = msg.get("role")
-            content = msg.get("content")
-
-            if not role or not content:
-                raise ValueError(f"Invalid message format: {msg}")
-
-            if role == "system":
-                langchain_messages.append(SystemMessage(content=content))
-            elif role == "user":
-                langchain_messages.append(HumanMessage(content=content))
-            elif role == "assistant":
-                langchain_messages.append(AIMessage(content=content))
-            else:
-                raise ValueError(f"Unknown role: {role}")
-
-        # 파라미터 설정
-        kwargs = {}
-        if temperature is not None:
-            kwargs["temperature"] = temperature
-        if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
-
-        # API 호출
-        try:
-            # LangChain의 ainvoke 사용 (async)
-            response = await self.client.ainvoke(
-                langchain_messages,
-                **kwargs
-            )
-
-            return response.content
-
-        except Exception as e:
-            raise Exception(f"LLM generation failed: {e}")
-
-    def estimate_tokens(self, text: str) -> int:
-        """
-        대략적인 토큰 수 추정
-
-        OpenAI 토큰화 규칙:
-        - 영어: ~4 글자 = 1 토큰
-        - 한국어: ~1.5 글자 = 1 토큰
-
-        Args:
-            text: 텍스트
-
-        Returns:
-            추정 토큰 수
-        """
-        # 간단한 휴리스틱 (실제론 tiktoken 사용해야 정확)
-        char_count = len(text)
-
-        # 영어/한국어 혼합 가정 (평균 2.5 글자 = 1 토큰)
-        return char_count // 3
 
 
 class PromptBuilder:
@@ -320,7 +201,7 @@ class OllamaClient(LLMClient):
     """
     Ollama 로컬 LLM 클라이언트 구현
 
-    로컬에서 실행되는 Llama 3.2 등의 모델 사용
+    로컬에서 실행되는 Ollama 모델 사용 (llama3.2, qwen, gemma 등)
 
     특징:
     - 완전 무료
@@ -330,21 +211,23 @@ class OllamaClient(LLMClient):
 
     def __init__(
         self,
-        model: str = "llama3.2",
-        base_url: str = "http://localhost:11434",
-        temperature: float = 0.0
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        temperature: Optional[float] = None
     ):
         """
         Ollama 클라이언트 초기화
 
         Args:
-            model: Ollama 모델 이름 (기본값: llama3.2)
-            base_url: Ollama 서버 URL (기본값: http://localhost:11434)
-            temperature: 생성 온도
+            model: Ollama 모델 이름 (기본값: settings.OLLAMA_MODEL)
+            base_url: Ollama 서버 URL (기본값: settings.OLLAMA_BASE_URL)
+            temperature: 생성 온도 (기본값: settings.LLM_TEMPERATURE)
         """
-        self.model = model
-        self.base_url = base_url
-        self.temperature = temperature
+        self.model = model or settings.OLLAMA_MODEL
+        self.base_url = base_url or settings.OLLAMA_BASE_URL
+        self.temperature = (
+            temperature if temperature is not None else settings.LLM_TEMPERATURE
+        )
 
     async def generate(
         self,
@@ -383,7 +266,8 @@ class OllamaClient(LLMClient):
                     "stream": False,
                     "options": {
                         "temperature": temp,
-                        "num_predict": max_tokens if max_tokens else -1
+                        # 상한이 없으면(-1) 작은 모델이 같은 말을 반복하며 끝나지 않는 경우가 있음
+                        "num_predict": max_tokens or settings.LLM_MAX_TOKENS
                     }
                 },
                 timeout=120  # 2분 타임아웃
@@ -456,3 +340,16 @@ class OllamaClient(LLMClient):
 
         except:
             return []
+
+    def list_chat_models(self) -> List[str]:
+        """
+        답변 생성에 쓸 수 있는 모델 목록 (임베딩 전용 모델 제외)
+
+        Returns:
+            모델 이름 리스트
+        """
+        embedding_markers = ("embed", "bge-", "minilm", "e5-")
+        return [
+            name for name in self.list_models()
+            if not any(marker in name.lower() for marker in embedding_markers)
+        ]

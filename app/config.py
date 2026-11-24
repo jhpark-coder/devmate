@@ -17,11 +17,16 @@ class Settings:
     """애플리케이션 설정"""
 
     # ============================================
-    # API Keys
+    # 로컬 LLM (Ollama) — 외부 API 키 없이 동작
     # ============================================
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
-    OPENAI_TEMPERATURE: float = float(os.getenv("OPENAI_TEMPERATURE", "0.0"))
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    # 답변 생성 모델 (UI에서는 설치된 모델 중 고를 수 있음)
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.2")
+    # 검색용 임베딩 모델 — 바꾸면 인덱스를 다시 만들어야 함
+    OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
+    LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.0"))
+    # 답변 최대 길이 (토큰)
+    LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "1500"))
 
     # ============================================
     # Paths
@@ -71,14 +76,6 @@ class Settings:
         cls.DATABASE_PATH.mkdir(parents=True, exist_ok=True)
         cls.LOGS_PATH.mkdir(parents=True, exist_ok=True)
 
-    @classmethod
-    def validate(cls) -> None:
-        """설정 검증"""
-        if not cls.OPENAI_API_KEY:
-            raise ValueError(
-                "OPENAI_API_KEY is not set. "
-                "Please set it in .env file or environment variable."
-            )
 
 
 # 전역 설정 인스턴스

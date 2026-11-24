@@ -1,19 +1,16 @@
 # DevMate Dependencies
 
 # ============================================
-# Core LLM & RAG
+# Core LLM & RAG (LLM·임베딩은 로컬 Ollama 사용)
 # ============================================
-openai==1.12.0
 langchain==0.1.9
 langchain-community==0.0.24
-langchain-openai==0.0.6
+# Python 3.12.4+에서 구버전 langsmith가 ForwardRef 오류로 import 실패 → 0.1.125 이상 필요
+langsmith>=0.1.125,<0.2
 
 # Vector Store
 faiss-cpu==1.8.0
 # faiss-gpu==1.8.0  # GPU 사용 시
-
-# Embeddings
-tiktoken==0.6.0
 
 # ============================================
 # Web Framework
@@ -24,6 +21,8 @@ python-multipart==0.0.9  # 파일 업로드용
 
 # Streamlit UI
 streamlit==1.31.1
+# 최신 pyarrow는 NumPy 2.0을 요구하는데 langchain 0.1.x는 NumPy 1.x를 씀 → 17 미만으로 고정
+pyarrow<17
 
 # ============================================
 # Database & ORM
@@ -48,7 +47,8 @@ nltk==3.8.1
 python-dotenv==1.0.1
 
 # Data Validation
-pydantic==2.6.1
+# langsmith 0.1.125+ 가 pydantic 2.7.4 이상을 요구 (2.14.4에서 테스트 통과)
+pydantic==2.14.4
 pydantic-settings==2.1.0
 
 # HTTP Client
@@ -87,6 +87,3 @@ loguru==0.7.2
 # Alternative Vector Stores
 # pinecone-client==3.0.3
 # chromadb==0.4.22
-
-# Alternative LLM
-# anthropic==0.18.1

@@ -1,11 +1,10 @@
 """
 벡터 스토어 통합 테스트
 
-실제 OpenAI API를 호출하여 FAISS 벡터 스토어를 테스트합니다.
+로컬 Ollama 임베딩으로 FAISS 벡터 스토어를 테스트합니다.
 
 주의:
-- 실제 API 호출 → 비용 발생 (매우 소량)
-- .env 파일에 OPENAI_API_KEY 필요
+- Ollama 실행 + 임베딩 모델(bge-m3) 필요, 없으면 건너뜀
 """
 
 import pytest
@@ -13,17 +12,17 @@ import os
 from pathlib import Path
 import shutil
 
-from langchain_openai import OpenAIEmbeddings
+from app.infrastructure.embeddings import create_embeddings, is_embedding_model_available
 
 from app.infrastructure.vector_store import FAISSVectorStore
 from app.domain.models import DocumentChunk
 from app.config import settings
 
 
-# OpenAI API 키 확인
+# 로컬 Ollama 임베딩 모델 확인
 pytestmark = pytest.mark.skipif(
-    not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "",
-    reason="OPENAI_API_KEY not set"
+    not is_embedding_model_available(),
+    reason=f"Ollama 임베딩 모델 '{settings.OLLAMA_EMBED_MODEL}' 없음"
 )
 
 
@@ -35,11 +34,8 @@ def test_index_path(tmp_path):
 
 @pytest.fixture
 def embeddings():
-    """OpenAI Embeddings 클라이언트"""
-    return OpenAIEmbeddings(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model="text-embedding-ada-002"
-    )
+    """로컬 Ollama 임베딩 클라이언트"""
+    return create_embeddings()
 
 
 @pytest.fixture

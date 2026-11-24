@@ -41,7 +41,7 @@ class QueryHandler:
 
         Args:
             vector_store: 벡터 저장소 (FAISS 등)
-            llm_client: LLM 클라이언트 (OpenAI 등)
+            llm_client: LLM 클라이언트 (Ollama 등)
             similarity_top_k: 검색할 유사 청크 수 (기본값: config.SIMILARITY_TOP_K)
         """
         self.vector_store = vector_store

@@ -15,11 +15,10 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from langchain_openai import OpenAIEmbeddings
-
 from app.application.document_processor import DocumentProcessor
 from app.infrastructure.vector_store import FAISSVectorStore
 from app.infrastructure.text_splitter import CustomTextSplitter
+from app.infrastructure.embeddings import create_embeddings, is_embedding_model_available
 from app.domain.models import SourceType
 from app.config import settings
 
@@ -34,13 +33,23 @@ async def index_documents():
     # 1. 초기화
     print("\n📦 시스템 초기화 중...")
 
-    embeddings = OpenAIEmbeddings(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model="text-embedding-ada-002"
-    )
+    if not is_embedding_model_available():
+        print(f"\n❌ 임베딩 모델 '{settings.OLLAMA_EMBED_MODEL}' 을 찾을 수 없습니다.")
+        print("   Ollama를 켠 뒤 다음을 실행하세요:")
+        print(f"   ollama pull {settings.OLLAMA_EMBED_MODEL}")
+        return
+
+    embeddings = create_embeddings()
+    print(f"   임베딩 모델: {settings.OLLAMA_EMBED_MODEL} (로컬)")
 
     # 프로덕션 인덱스 경로 사용
     index_path = settings.VECTOR_STORE_PATH / "production_index"
+
+    # 임베딩 모델이 바뀌면 기존 벡터와 섞을 수 없으므로 매번 새로 만든다
+    if index_path.exists():
+        import shutil
+        shutil.rmtree(index_path)
+        print("   기존 인덱스를 지우고 새로 만듭니다.")
 
     vector_store = FAISSVectorStore(
         embeddings=embeddings,
@@ -68,11 +77,12 @@ async def index_documents():
         print("   python scripts/download_docs.py --all")
         return
 
-    # 3. 각 소스별로 문서 인덱싱
+    # 3. data/source_docs 아래 기술별 폴더를 전부 인덱싱
+    known_types = {t.value: t for t in SourceType}
     source_mapping = {
-        "fastapi": SourceType.FASTAPI,
-        "langchain": SourceType.LANGCHAIN,
-        "python": SourceType.PYTHON
+        d.name: known_types.get(d.name, SourceType.OTHER)
+        for d in sorted(source_docs_dir.iterdir())
+        if d.is_dir()
     }
 
     total_documents = 0
@@ -130,6 +140,10 @@ async def index_documents():
     print(f"   - 총 문서: {total_documents}개")
     print(f"   - 총 청크: {total_chunks}개")
     print(f"   - 인덱스 위치: {index_path.absolute()}")
+
+    if total_documents == 0:
+        print("\n⚠️  인덱싱된 문서가 없습니다.")
+        return
 
     print("\n🎉 DevMate 사용 준비 완료!")
     print("\n다음 단계:")
